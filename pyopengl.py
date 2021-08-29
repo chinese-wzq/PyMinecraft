@@ -14,14 +14,12 @@ player_y=0
 player_z=-1
 
 #用户不应该动的变量
-mouse_move_x=0
-mouse_move_y=0
-eye_lookat_1=0
-eye_lookat_2=0
-eye_lookat_3=0
-lock_muose=True
+player_see_x=0#为了以后的更新做好准备
+player_see_y=0
+lock_muose=False
 mouse_should_move_pos=(0,0)
 mouse_fix_No1=5
+debug=False
 
 #地图数据
 #每层都会进一步确定方块
@@ -78,23 +76,16 @@ def print_blocks(sx:int,sy:int,sz:int):
                     # glVertex3f(x+0.5,y-0.5,z-0.5)#V3
                     glEnd()
 def draw():
-    global eye_lookat_1,eye_lookat_2,eye_lookat_3,mouse_move_x,mouse_move_y,player_x,player_y,player_z
+    global player_see_x,player_see_y,player_x,player_y,player_z
     glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
     glMatrixMode(GL_PROJECTION)
     glLoadIdentity()
     glFrustum(0.3,-0.3,0.3,-0.3,0.1,1)
-    #处理鼠标移动数据
-    A=mouse_move_x
-    eye_lookat_1=A+eye_lookat_1
-    mouse_move_x=mouse_move_x-A
-    A=mouse_move_y
-    eye_lookat_2=A+eye_lookat_2
-    mouse_move_y=mouse_move_y-A
     glMatrixMode(GL_MODELVIEW)
     glLoadIdentity()
     gluLookAt(
         player_x,player_y+1,player_z,
-        eye_lookat_1,eye_lookat_2,eye_lookat_3,
+        player_see_x,player_see_y,0,
         0,1,0
     )
     #渲染方块
@@ -102,8 +93,8 @@ def draw():
     #渲染结束
     glutSwapBuffers()
 def keyboardchange(button,x,y):#实现暂停、视角的前进与后退等功能
-    global lock_muose,mouse_fix_No1,mouse_should_move_pos
-    if button==b'\x1b':
+    if button==b'\x1b':#是否开启鼠标控制
+        global lock_muose,mouse_fix_No1,mouse_should_move_pos
         if lock_muose:
             lock_muose=False
             glutSetCursor(GLUT_CURSOR_LEFT_ARROW)
@@ -112,21 +103,28 @@ def keyboardchange(button,x,y):#实现暂停、视角的前进与后退等功能
             lock_muose=True
             mouse_fix_No1=1
             glutSetCursor(GLUT_CURSOR_NONE)
-    glutPostRedisplay()
+            glutPostRedisplay()
+    elif button==b'`':#调试模式
+        global debug
+        if debug:debug=False
+        else:debug=True
+    else:
+        print(button)
+
 def change(x,y):
     global mouse_should_move_pos
     mouse_should_move_pos=(400,400)
     glutPostRedisplay()#没了它，拉动窗口图形就会变形
 def mousemove(x,y):
-    global lock_muose,mouse_move_x,mouse_move_y,move_speed,mouse_should_move_pos,mouse_fix_No1
-    mouse_pos=(x,y)
+    global lock_muose,mouse_fix_No1
     if lock_muose and mouse_fix_No1==5:
-        mouse_fix_No1=1
-        mouse_move_x=move_speed*(mouse_pos[0]-mouse_should_move_pos[0])+mouse_move_x
-        mouse_move_y=move_speed*(mouse_pos[1]-mouse_should_move_pos[1])+mouse_move_y
+        global move_speed,mouse_should_move_pos,player_see_x,player_see_y
+        #这里重写了一下，为了以后的更新做准备
+        player_see_x=(x-mouse_should_move_pos[0])*move_speed+player_see_x
+        player_see_y=(y-mouse_should_move_pos[1])*move_speed+player_see_y
         glutWarpPointer(mouse_should_move_pos[0],mouse_should_move_pos[1])
-        if mouse_move_y!=0 or mouse_move_x!=0:
-            glutPostRedisplay()
+        mouse_fix_No1=1
+        glutPostRedisplay()
         return 0
     mouse_fix_No1+=1
 def draw_main():
