@@ -27,27 +27,24 @@ mouse_fix_No1=5
 debug=True
 map=[[],[[[],[[[],[1]]]]]]
 block_color=[(50,205,50)]
+def get_two_float(num:float):
+    a,b,c=str(num).partition('.')
+    c=c.zfill(2)[:2]
+    return float(a+b+c)
 def generate_text_image(text:str,color:str,size:int):
-    global font,debug
+    global font
     Wzq_NB=ImageFont.truetype(font,size)
     size=Wzq_NB.getsize(text)
     wzq=Image.new("RGBA",size)
     picture=ImageDraw.Draw(wzq)
     picture.text((0,0),text,font=Wzq_NB,fill=color)
-    a=np.ravel(wzq)
-    c=np.split(a,[size[0]*4],axis=0)
-    A=list(np.concatenate(c))
-    if debug:
-        c.reverse()
-        print("e")
-    rgba=list(np.concatenate(c))
-    return bytes(rgba),Wzq_NB.getsize(text)
+    return bytes(list(np.concatenate(np.split(np.ravel(wzq.transpose(Image.FLIP_TOP_BOTTOM)),[size[0]*4])))),Wzq_NB.getsize(text)
 def debug_main():
     global debug
-    #if debug:
-    global player_see_x,player_see_y
-    mua=generate_text_image("E:"+str(int(player_see_x))+";"+str(int(player_see_y)),"gray",50)
-    glDrawPixels(mua[1][0],mua[1][1],GL_RGBA,GL_UNSIGNED_BYTE,mua[0])
+    if debug:
+        global player_see_x,player_see_y
+        mua=generate_text_image("E:"+str(get_two_float(player_see_x))+";"+str(get_two_float(player_see_y)),"blue",50)
+        glDrawPixels(mua[1][0],mua[1][1],GL_RGBA,GL_UNSIGNED_BYTE,mua[0])
 def find_block(x:int,y:int,z:int):
     global map
     try:
