@@ -1,10 +1,14 @@
 # coding=utf-8
+# 不会吧不会吧还有人不知道UTF-8??????
+#导入OpenGL相关库
 from OpenGL.GL import *
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
-
+#导入字体显示相关库
+from PIL import Image,ImageDraw,ImageFont
+import numpy as np
+import random
 #允许用户自定义的变量
-
 move_speed=0.01 #鼠标移动距离
 look_length=9  #渲染距离,只支持不小于1的奇数
 highest_y=100
@@ -12,6 +16,7 @@ lowest_y=0
 player_x=0
 player_y=0
 player_z=-1
+font="msyh.ttc"
 
 #用户不应该动的变量
 player_see_x=0#为了以后的更新做好准备
@@ -19,22 +24,30 @@ player_see_y=0
 lock_muose=False
 mouse_should_move_pos=(0,0)
 mouse_fix_No1=5
-debug=False
-
-#地图数据
-#每层都会进一步确定方块
-#0也算作正坐标
-#以下是层数：
-#[X位置]
-#[负坐标寻址][正坐标寻址]
-#[Y位置]
-#[负坐标寻址][正坐标寻址]
-#[Z位置]
-#[负坐标寻址][正坐标寻址]
+debug=True
 map=[[],[[[],[[[],[1]]]]]]
-
-#方块颜色数据（demo）
 block_color=[(50,205,50)]
+def generate_text_image(text:str,color:str,size:int):
+    global font,debug
+    Wzq_NB=ImageFont.truetype(font,size)
+    size=Wzq_NB.getsize(text)
+    wzq=Image.new("RGBA",size)
+    picture=ImageDraw.Draw(wzq)
+    picture.text((0,0),text,font=Wzq_NB,fill=color)
+    a=np.ravel(wzq)
+    c=np.split(a,[size[0]*4],axis=0)
+    A=list(np.concatenate(c))
+    if debug:
+        c.reverse()
+        print("e")
+    rgba=list(np.concatenate(c))
+    return bytes(rgba),Wzq_NB.getsize(text)
+def debug_main():
+    global debug
+    #if debug:
+    global player_see_x,player_see_y
+    mua=generate_text_image("E:"+str(int(player_see_x))+";"+str(int(player_see_y)),"gray",50)
+    glDrawPixels(mua[1][0],mua[1][1],GL_RGBA,GL_UNSIGNED_BYTE,mua[0])
 def find_block(x:int,y:int,z:int):
     global map
     try:
@@ -91,6 +104,8 @@ def draw():
     #渲染方块
     print_blocks(player_x,player_y,player_z)
     #渲染结束
+    #调试模式
+    debug_main()
     glutSwapBuffers()
 def keyboardchange(button,x,y):#实现暂停、视角的前进与后退等功能
     if button==b'\x1b':#是否开启鼠标控制
@@ -110,7 +125,6 @@ def keyboardchange(button,x,y):#实现暂停、视角的前进与后退等功能
         else:debug=True
     else:
         print(button)
-
 def change(x,y):
     global mouse_should_move_pos
     mouse_should_move_pos=(400,400)
@@ -143,3 +157,4 @@ def draw_main():
     glutPassiveMotionFunc(mousemove)
     glutMainLoop()
 draw_main()
+#generate_text_image(".","blue",100)
