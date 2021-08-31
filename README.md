@@ -11,7 +11,7 @@
 
 1. 安装依赖库
 
-    在目录下运行"pip install -r requirement.txt"，将会自动安装所需的依赖库（PyOpenGL库需手动安装正确位数的版本）
+    在目录下运行"pip install -r requirement.txt"，将会自动安装所需的依赖库（PyOpenGL库需手动安装正确位数的版本，Python版本为3.9）
   
 2. 运行主程序
 
