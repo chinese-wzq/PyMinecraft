@@ -1,5 +1,36 @@
 # coding=utf-8
 # 不会吧不会吧还有人不知道UTF-8??????
+
+#感谢您查看我的作品！
+#本项目唯一地址（没有码云地址哦）：
+#https://github.com/yi-ge-shuai-qi-de-kai-fa-zhe/PyMinecraft
+#如果你发现有无良程序员大量盗用本程序代码并且未加声明的
+#欢迎你与他对线，并且将他的作品地址发给我（让我康康♂）
+#以下为生命以及一些介绍，如果有不符合规范的欢迎提出拉取请求，我不懂开源协议，太多了QAQ
+
+#################################################
+#                本作品为兴趣使然                  #
+#             我并没有收过任何人的钱财              #
+#             也没有与任何人有契约关系              #
+#     本作品与MOJANG工作室（BUGJUMP）没有任何关系    #
+#     我从来没有查看过Minecraft的源码（反正看不懂）   #
+#      本作品仅供学习、娱乐，商用请注明项目地址       #
+#        欢迎提交拉取请求，这是对我最大的支持         #
+#    我也只是一个小小的初二生，很多数学计算略为粗糙     #
+#            因此希望您帮助改进我的算法             #
+################################################
+#            本游戏是开源的，所有人可编辑           #
+#           因此，我才能尽量保证代码的安全性         #
+#          本游戏从设计之初就采用了超多函数设置       #
+#          这时的游戏的大部分函数具有参考价值        #
+#             如果本游戏的某些函数帮到了您          #
+#        欢迎您在项目地址上点一个免费的Star（星）    #
+#             你的星会成为我Coding的动力          #
+###############################################
+
+#################感谢与你相遇！###################
+
+
 #导入OpenGL相关库
 from OpenGL.GL import *
 from OpenGL.GLUT import *
@@ -7,16 +38,18 @@ from OpenGL.GLU import *
 #导入字体显示相关库
 from PIL import Image,ImageDraw,ImageFont
 import numpy as np
-import random
+#导入三角函数相关库
+import math
 #允许用户自定义的变量
-move_speed=0.01 #鼠标移动距离
+mouse_move_speed=0.01 #鼠标移动距离
+player_move_speed=0.5
 look_length=9  #渲染距离,只支持不小于1的奇数
-highest_y=100
-lowest_y=0
+highest_y=100  #世界最高Y坐标
+lowest_y=0   #世界最低Y坐标
 player_x=0
 player_y=0
 player_z=-1
-font="msyh.ttc"
+font="msyh.ttc"    #显示文字时使用的字体
 
 #用户不应该动的变量
 player_see_x=0#为了以后的更新做好准备
@@ -27,6 +60,9 @@ mouse_fix_No1=5
 debug=True
 map=[[],[[[],[[[],[1]]]]]]
 block_color=[(50,205,50)]
+def Formulas_of_trigonometri_functions_move(look_x:float,look_y:float):
+    global player_move_speed
+    return 0
 def get_two_float(num:float):
     a,b,c=str(num).partition('.')
     c=c.zfill(2)[:2]
@@ -129,10 +165,10 @@ def change(x,y):
 def mousemove(x,y):
     global lock_muose,mouse_fix_No1
     if lock_muose and mouse_fix_No1==5:
-        global move_speed,mouse_should_move_pos,player_see_x,player_see_y
+        global mouse_move_speed,mouse_should_move_pos,player_see_x,player_see_y
         #这里重写了一下，为了以后的更新做准备
-        player_see_x=(x-mouse_should_move_pos[0])*move_speed+player_see_x
-        player_see_y=(y-mouse_should_move_pos[1])*move_speed+player_see_y
+        player_see_x=(x-mouse_should_move_pos[0])*mouse_move_speed+player_see_x
+        player_see_y=(y-mouse_should_move_pos[1])*mouse_move_speed+player_see_y
         glutWarpPointer(mouse_should_move_pos[0],mouse_should_move_pos[1])
         mouse_fix_No1=1
         glutPostRedisplay()
