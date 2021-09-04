@@ -1,6 +1,7 @@
 # python&Minecraft,所以叫做"PyMinecraft"
 
 # 如果您想鼓励我，给我点个免费的Star吧，这对我超级重要
+####### 你不点Star,我不点Star,程序员明天就自杀
 
 ### 感谢OpenGL入门教程[写给 python 程序员的 OpenGL 教程](https://blog.csdn.net/xufive/article/details/86565130)
 
