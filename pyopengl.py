@@ -42,7 +42,7 @@ import numpy as np
 import math
 #允许用户自定义的变量
 mouse_move_speed=0.01 #鼠标移动距离
-player_move_speed=0.5
+player_move_speed=0.1
 look_length=9  #渲染距离,只支持不小于1的奇数
 highest_y=100  #世界最高Y坐标
 lowest_y=0   #世界最低Y坐标
@@ -121,8 +121,8 @@ def print_blocks(sx:int,sy:int,sz:int):
                     glVertex3f(x+0.5,y+0.5,z-0.5)#V1
                     glVertex3f(x-0.5,y-0.5,z-0.5)#V3
                     glVertex3f(x+0.5,y-0.5,z-0.5)#V2
-                    glVertex3f(x+0.5,y-0.5,z+0.5)#V6
-                    glVertex3f(x-0.5,y-0.5,z+0.5)#V7
+                    # glVertex3f(x+0.5,y-0.5,z+0.5)#V6
+                    # glVertex3f(x-0.5,y-0.5,z+0.5)#V7
                     # glVertex3f(x-0.5,y+0.5,z-0.5)#V0
                     # glVertex3f(x+0.5,y+0.5,z-0.5)#V1
                     # glVertex3f(x+0.5,y+0.5,z+0.5)#V5
@@ -149,7 +149,7 @@ def draw():
     #调试模式
     debug_main()
     glutSwapBuffers()
-def Formulas_of_trigonometri_functions_move(look_x:float,look_y:float):
+def formulas_of_trigonometri_functions_move(look_x:float,look_y:float):
     global player_move_speed
     x=math.cos(look_x)*player_move_speed
     z=math.sin(look_x)*player_move_speed
@@ -157,11 +157,17 @@ def Formulas_of_trigonometri_functions_move(look_x:float,look_y:float):
     return x,y,z
 def spectator_mode(button):
     global player_see_x,player_see_y,player_x,player_y,player_z
-    if button==b'w':
-        x,y,z=Formulas_of_trigonometri_functions_move(player_see_x,player_see_y)
-        player_x+=x
-        player_y+=y
-        player_z+=z
+    x,y,z=formulas_of_trigonometri_functions_move(player_see_x,player_see_y)
+    if button==b's':
+        pass
+    elif button==b'w':
+        x=-1*x
+        y=-1*y
+        z=-1*z
+    player_x+=x
+    player_y+=y
+    player_z+=z
+    glutPostRedisplay()
 def keyboardchange(button,x,y):#实现暂停、视角的前进与后退等功能
     if button==b'\x1b':#是否开启鼠标控制
         global lock_muose,mouse_fix_No1,mouse_should_move_pos
@@ -174,7 +180,7 @@ def keyboardchange(button,x,y):#实现暂停、视角的前进与后退等功能
             mouse_fix_No1=1
             glutSetCursor(GLUT_CURSOR_NONE)
             glutPostRedisplay()
-    elif button==b'w':
+    elif button==b'w' or button==b's':
         spectator_mode(button)
     elif button==b'`':#调试模式
         global debug
