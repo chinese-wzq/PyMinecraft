@@ -60,27 +60,34 @@ mouse_fix_No1=5
 debug=True
 map=[[],[[[],[[[],[1]]]]]]
 block_color=[(50,205,50)]
-def Formulas_of_trigonometri_functions_move(look_x:float,look_y:float):
-    global player_move_speed
-    return 0
+
 def get_two_float(num:float):
     a,b,c=str(num).partition('.')
     c=c.zfill(2)[:2]
     return float(a+b+c)
-def generate_text_image(text:str,color:str,size:int):
+def generate_text_image(text:list,color:str,size:int):
     global font
     Wzq_NB=ImageFont.truetype(font,size)
-    size=Wzq_NB.getsize(text)
+    size=[0,0]
+    for i in text:
+        qaq=Wzq_NB.getsize(i)
+        if qaq[0]>size[0]:size[0]=qaq[0]
+        size[1]+=qaq[1]
     wzq=Image.new("RGBA",size)
     picture=ImageDraw.Draw(wzq)
-    picture.text((0,0),text,font=Wzq_NB,fill=color)
-    return bytes(list(np.concatenate(np.split(np.ravel(wzq.transpose(Image.FLIP_TOP_BOTTOM)),[size[0]*4])))),Wzq_NB.getsize(text)
+    hi=0
+    for i in text:
+        picture.text((0,hi),i,font=Wzq_NB,fill=color)
+        hi+=Wzq_NB.getsize(i)[1]
+    return bytes(list(np.ravel(wzq.transpose(Image.FLIP_TOP_BOTTOM)))),size
 def debug_main():
     global debug
     if debug:
-        global player_see_x,player_see_y
-        mua=generate_text_image("E:"+str(get_two_float(player_see_x))+";"+str(get_two_float(player_see_y)),"blue",50)
-        glDrawPixels(mua[1][0],mua[1][1],GL_RGBA,GL_UNSIGNED_BYTE,mua[0])
+        global player_see_x,player_see_y,player_x,player_y,player_z
+        wait_print=["XYZ:"+str(get_two_float(player_x))+";"+str(get_two_float(player_y))+";"+str(get_two_float(player_z)),
+                    "E:"+str(get_two_float(player_see_x))+";"+str(get_two_float(player_see_y))]
+        wzq=generate_text_image(wait_print,"blue",20)
+        glDrawPixels(wzq[1][0],wzq[1][1],GL_RGBA,GL_UNSIGNED_BYTE,wzq[0])
 def find_block(x:int,y:int,z:int):
     global map
     try:
@@ -88,6 +95,9 @@ def find_block(x:int,y:int,z:int):
     except:
         return 0
 def print_blocks(sx:int,sy:int,sz:int):
+    sx=int(sx)
+    sy=int(sy)
+    sz=int(sz)
     global look_length,highest_y,lowest_y,block_color
     by_13905069=(sx-int((look_length-1)/2),sx+int((look_length-1)/2)+1)
     for x in range(by_13905069[0],by_13905069[1]):
@@ -136,10 +146,22 @@ def draw():
     )
     #渲染方块
     print_blocks(player_x,player_y,player_z)
-    #渲染结束
     #调试模式
     debug_main()
     glutSwapBuffers()
+def Formulas_of_trigonometri_functions_move(look_x:float,look_y:float):
+    global player_move_speed
+    x=math.cos(look_x)*player_move_speed
+    z=math.sin(look_x)*player_move_speed
+    y=math.cos(look_y)*player_move_speed
+    return x,y,z
+def spectator_mode(button):
+    global player_see_x,player_see_y,player_x,player_y,player_z
+    if button==b'w':
+        x,y,z=Formulas_of_trigonometri_functions_move(player_see_x,player_see_y)
+        player_x+=x
+        player_y+=y
+        player_z+=z
 def keyboardchange(button,x,y):#实现暂停、视角的前进与后退等功能
     if button==b'\x1b':#是否开启鼠标控制
         global lock_muose,mouse_fix_No1,mouse_should_move_pos
@@ -152,6 +174,8 @@ def keyboardchange(button,x,y):#实现暂停、视角的前进与后退等功能
             mouse_fix_No1=1
             glutSetCursor(GLUT_CURSOR_NONE)
             glutPostRedisplay()
+    elif button==b'w':
+        spectator_mode(button)
     elif button==b'`':#调试模式
         global debug
         if debug:debug=False
@@ -190,4 +214,3 @@ def draw_main():
     glutPassiveMotionFunc(mousemove)
     glutMainLoop()
 draw_main()
-#generate_text_image(".","blue",100)
