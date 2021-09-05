@@ -40,6 +40,9 @@ from PIL import Image,ImageDraw,ImageFont
 import numpy as np
 #导入三角函数相关库
 import math
+#导入窗口相关库
+import win32con,win32gui
+
 #允许用户自定义的变量
 mouse_move_speed=0.01 #鼠标移动距离
 player_move_speed=0.1
@@ -50,16 +53,19 @@ player_x=0
 player_y=0
 player_z=-1
 font="msyh.ttc"    #显示文字时使用的字体
+window_long=400    #窗口的长与宽
+window_width=400
 
 #用户不应该动的变量
 player_see_x=0#为了以后的更新做好准备
 player_see_y=0
 lock_muose=False
-mouse_should_move_pos=(0,0)
 mouse_fix_No1=5
 debug=True
 map=[[],[[[],[[[],[1]]]]]]
 block_color=[(50,205,50)]
+hwnd=0
+debug_text=[]
 
 def get_two_float(num:float):
     a,b,c=str(num).partition('.')
@@ -170,12 +176,12 @@ def spectator_mode(button):
     glutPostRedisplay()
 def keyboardchange(button,x,y):#实现暂停、视角的前进与后退等功能
     if button==b'\x1b':#是否开启鼠标控制
-        global lock_muose,mouse_fix_No1,mouse_should_move_pos
+        global lock_muose,mouse_fix_No1,window_width,window_long
         if lock_muose:
             lock_muose=False
             glutSetCursor(GLUT_CURSOR_LEFT_ARROW)
         else:
-            glutWarpPointer(mouse_should_move_pos[0],mouse_should_move_pos[1])
+            glutWarpPointer(window_long,window_width)
             lock_muose=True
             mouse_fix_No1=1
             glutSetCursor(GLUT_CURSOR_NONE)
@@ -188,34 +194,34 @@ def keyboardchange(button,x,y):#实现暂停、视角的前进与后退等功能
         else:debug=True
     else:
         print(button)
-def change(x,y):
-    global mouse_should_move_pos
-    mouse_should_move_pos=(400,400)
-    glutPostRedisplay()#没了它，拉动窗口图形就会变形
 def mousemove(x,y):
     global lock_muose,mouse_fix_No1
     if lock_muose and mouse_fix_No1==5:
-        global mouse_move_speed,mouse_should_move_pos,player_see_x,player_see_y
+        global mouse_move_speed,player_see_x,player_see_y,window_width,window_long
         #这里重写了一下，为了以后的更新做准备
-        player_see_x=(x-mouse_should_move_pos[0])*mouse_move_speed+player_see_x
-        player_see_y=(y-mouse_should_move_pos[1])*mouse_move_speed+player_see_y
-        glutWarpPointer(mouse_should_move_pos[0],mouse_should_move_pos[1])
+        player_see_x=(x-window_long)*mouse_move_speed+player_see_x
+        player_see_y=(y-window_width)*mouse_move_speed+player_see_y
+        glutWarpPointer(window_long,window_width)
         mouse_fix_No1=1
         glutPostRedisplay()
         return 0
     mouse_fix_No1+=1
 def draw_main():
+    global hwnd,window_width,window_long
     glutInit()
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_ALPHA | GLUT_DEPTH)
     glutCreateWindow("Minecraft 重置版 ByWzq".encode('GBK',errors="replace"))
     glutSetCursor(GLUT_CURSOR_NONE)
-    glutReshapeWindow(800,800)
-    glViewport(0,0,800,800)
+    hwnd=win32gui.GetForegroundWindow()
+    A=win32gui.GetWindowLong(hwnd,win32con.GWL_STYLE)
+    A ^=win32con.WS_THICKFRAME
+    win32gui.SetWindowLong(hwnd,win32con.GWL_STYLE,A)
+    glutReshapeWindow(window_long*2,window_width*2)
+    glViewport(0,0,window_long*2,window_width*2)
     glClearColor(0.0, 0.0, 0.0, 0.0)
     glEnable(GL_DEPTH_TEST)
     glDepthFunc(GL_LESS)
     glutDisplayFunc(draw)
-    glutReshapeFunc(change)#在每次拉动窗口的时候重新渲染
     glutKeyboardFunc(keyboardchange)
     glutPassiveMotionFunc(mousemove)
     glutMainLoop()
