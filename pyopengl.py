@@ -73,20 +73,21 @@ def get_two_float(num:float):
     return float(a+b+c)
 def generate_text_image(text:list,color:str,size:int):
     global font,window_width
+    w=[]
     for i in range(len(text)):
         mi=""
         for ii in text[i]:
             mi+=str(ii)
-        text[i]=mi
+        w.append(mi)
     Wzq_NB=ImageFont.truetype(font,size)
     size_x=0
-    for i in text:
+    for i in w:
         qaq=Wzq_NB.getsize(i)
         if qaq[0]>size_x:size_x=qaq[0]
     wzq=Image.new("RGBA",(size_x,window_width*2))
     picture=ImageDraw.Draw(wzq)
     hi=0
-    for i in text:
+    for i in w:
         picture.text((0,hi),i,font=Wzq_NB,fill=color)
         hi+=Wzq_NB.getsize(i)[1]
     return bytes(list(np.ravel(wzq.transpose(Image.FLIP_TOP_BOTTOM)))),(size_x,window_width*2)
@@ -94,11 +95,16 @@ def debug_main():
     global debug
     if debug:
         global player_see_x,player_see_y,player_x,player_y,player_z,debug_text
-        debug_text[0][1]=str(player_x)
-        debug_text[0][2]=str(player_y)
-        debug_text[0][3]=str(player_z)
-        debug_text[1][1]=str(player_see_x)
-        debug_text[1][3]=str(player_see_y)
+        #以下为没法的代码设计，嘤嘤嘤
+        a=debug_text[0]
+        a[1]=get_two_float(player_x)
+        a[3]=get_two_float(player_y)
+        a[5]=get_two_float(player_z)
+        debug_text[0]=a
+        a=debug_text[1]
+        a[1]=get_two_float(player_see_x)
+        a[3]=get_two_float(player_see_y)
+        debug_text[1]=a
         wzq=generate_text_image(debug_text,"blue",20)
         glDrawPixels(wzq[1][0],wzq[1][1],GL_RGBA,GL_UNSIGNED_BYTE,wzq[0])
 def find_block(x:int,y:int,z:int):
@@ -112,7 +118,7 @@ def print_blocks(sx:int,sy:int,sz:int):
     sy=int(sy)
     sz=int(sz)
     global look_length,highest_y,lowest_y,block_color
-    by_13905069=(sx-int((look_length-1)/2),sx+int((look_length-1)/2)+1)
+    by_13905069=(sx-int((look_length-1)/2),sz+int((look_length-1)/2)+1)
     for x in range(by_13905069[0],by_13905069[1]):
         for y in range(lowest_y,highest_y+1):
             for z in range(by_13905069[0],by_13905069[1]):
