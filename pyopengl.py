@@ -31,12 +31,13 @@
 #################感谢与你相遇！###################
 
 #导入OpenGL相关库
+import win32api
+import win32ui
 from OpenGL.GL import *
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
 #导入字体显示相关库
-from PIL import Image,ImageDraw,ImageFont
-import numpy as np
+from OpenGL.WGL import *
 #导入三角函数相关库
 import math
 #导入窗口相关库
@@ -45,14 +46,14 @@ import win32con,win32gui
 #允许用户自定义的变量
 #已将大部分变量做好注释
 mouse_move_speed=0.01 #鼠标移动距离
-player_move_speed=0.1
+player_move_speed=0.01
 look_length=9  #渲染距离,只支持不小于1的奇数
 highest_y=100  #世界最高Y坐标
 lowest_y=0   #世界最低Y坐标
 player_x=0
 player_y=0
 player_z=-1
-font="msyh.ttc"    #显示文字时使用的字体
+font="Microsoft YaHei UI"    #显示文字时使用的字体
 window_long=400    #窗口的长与宽
 window_width=400
 
@@ -64,49 +65,13 @@ mouse_fix_No1=5
 debug=True
 map=[[],[[[],[[[],[1]]]]]]
 block_color=[(50,205,50)]
-hwnd=0
-debug_text=[]
-
+debug_text=[['XYZ:',0.0,',',0.0,',',0.0],
+            ['EYE:',0,',',0],
+            ['EDB:',0,',',0],]
 def get_two_float(num:float):
     a,b,c=str(num).partition('.')
     c=c.zfill(2)[:2]
     return float(a+b+c)
-def generate_text_image(text:list,color:str,size:int):
-    global font,window_width
-    w=[]
-    for i in range(len(text)):
-        mi=""
-        for ii in text[i]:
-            mi+=str(ii)
-        w.append(mi)
-    Wzq_NB=ImageFont.truetype(font,size)
-    size_x=0
-    for i in w:
-        qaq=Wzq_NB.getsize(i)
-        if qaq[0]>size_x:size_x=qaq[0]
-    wzq=Image.new("RGBA",(size_x,window_width*2))
-    picture=ImageDraw.Draw(wzq)
-    hi=0
-    for i in w:
-        picture.text((0,hi),i,font=Wzq_NB,fill=color)
-        hi+=Wzq_NB.getsize(i)[1]
-    return bytes(list(np.ravel(wzq.transpose(Image.FLIP_TOP_BOTTOM)))),(size_x,window_width*2)
-def debug_main():
-    global debug
-    if debug:
-        global player_see_x,player_see_y,player_x,player_y,player_z,debug_text
-        #以下为没法的代码设计，嘤嘤嘤
-        a=debug_text[0]
-        a[1]=get_two_float(player_x)
-        a[3]=get_two_float(player_y)
-        a[5]=get_two_float(player_z)
-        debug_text[0]=a
-        a=debug_text[1]
-        a[1]=get_two_float(player_see_x)
-        a[3]=get_two_float(player_see_y)
-        debug_text[1]=a
-        wzq=generate_text_image(debug_text,"blue",20)
-        glDrawPixels(wzq[1][0],wzq[1][1],GL_RGBA,GL_UNSIGNED_BYTE,wzq[0])
 def find_block(x:int,y:int,z:int):
     global map
     try:
@@ -150,17 +115,88 @@ def print_blocks(sx:int,sy:int,sz:int):
                     # glVertex3f(x-0.5,y-0.5,z-0.5)#V3
                     # glVertex3f(x+0.5,y-0.5,z-0.5)#V3
                     glEnd()
+def print_text_list(text:list,debug_hDC:int,callback=None,x=0,y=0):
+    global font,window_width
+    font_hieght=30
+    #设定文字的字体、颜色和背景
+    win32gui.SelectObject(debug_hDC,win32ui.CreateFont({"height":font_hieght,"name":font}).GetSafeHandle())
+    win32gui.SetBkMode(debug_hDC,win32con.TRANSPARENT)
+    win32gui.SetTextColor(debug_hDC,win32api.RGB(250,0,0))
+    callback(debug_hDC)
+    #开始显示（把连接和显示整到一起去了）
+    glLoadIdentity()
+    glTranslatef(-0.3,0.29,-0.1)#-0.1是为了防止文字被后面的物体遮挡！
+    qaq=y
+    draw_text_list=glGenLists(1)
+    for i in text:
+        glRasterPos2f(x,-qaq)
+        for ii in i:
+            for iii in str(ii):
+                wglUseFontBitmapsW(debug_hDC,ord(iii),1,draw_text_list)
+                glCallList(draw_text_list)
+        qaq+=font_hieght/3000
+    win32gui.DeleteObject(debug_hDC)
+def debug_print_coordinates_text(hDC):
+    #显示坐标系文字（方便与MC原版进行矫正）
+    a=glGenLists(1)
+    glRasterPos3f(1,0,0)
+    wglUseFontBitmapsW(hDC,ord('x'),1,a)
+    glCallList(a)
+    glRasterPos3f(0,1,0)
+    wglUseFontBitmapsW(hDC,ord('y'),1,a)
+    glCallList(a)
+    glRasterPos3f(0,0,1)
+    wglUseFontBitmapsW(hDC,ord('z'),1,a)
+    glCallList(a)
+def debug_main():
+    global debug
+    if debug:
+        global player_see_x,player_see_y,player_x,player_y,player_z,debug_text
+        #显示一个世界原点的坐标系
+        glBegin(GL_LINES)
+        glColor3ub(0,0,255)
+        glVertex3f(0,0,0)
+        glVertex3f(1,0,0)
+        glColor3ub(0,255,0)
+        glVertex3f(0,0,0)
+        glVertex3f(0,1,0)
+        glColor3ub(255,0,0)
+        glVertex3f(0,0,0)
+        glVertex3f(0,0,1)
+        glEnd()
+        a=debug_text[0]
+        a[1]=get_two_float(player_x)
+        a[3]=get_two_float(player_y)
+        a[5]=get_two_float(player_z)
+        debug_text[0]=a
+        a=debug_text[1]
+        a[1]=get_two_float(player_see_x)
+        a[3]=get_two_float(player_see_y)
+        debug_text[1]=a
+        #调用文字显示函数显示debug内容，并顺便打印文字出来
+        print_text_list(debug_text,wglGetCurrentDC(),debug_print_coordinates_text)
 def draw():
     global player_see_x,player_see_y,player_x,player_y,player_z
     glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
     glMatrixMode(GL_PROJECTION)
     glLoadIdentity()
-    glFrustum(0.3,-0.3,0.3,-0.3,0.1,1)
+    glFrustum(-0.3,0.3,-0.3,0.3,0.1,3)
+    #笔记：
+    #glFrustum(left,right,bottom,top,zNear,zFar)
+    #这个函数的参数只定义近裁剪平面的左下角点和右上角点的三维空间坐标，即（left，bottom，-near）和（right，top，-near)
     glMatrixMode(GL_MODELVIEW)
     glLoadIdentity()
+    #这里是暂时用来调试的
+    global debug_text
+    w=math.sin(player_see_x)*2
+    a=debug_text[2]
+    a[1]=get_two_float(w)
+    ww=math.sin(player_see_y)*2
+    a[3]=get_two_float(ww)
+    debug_text[2]=a
     gluLookAt(
         player_x,player_y+1,player_z,
-        player_see_x,player_see_y,0,
+        player_x+w,player_y+ww,0,
         0,1,0
     )
     #渲染方块
@@ -168,21 +204,17 @@ def draw():
     #调试模式
     debug_main()
     glutSwapBuffers()
-def formulas_of_trigonometri_functions_move(look_x:float,look_y:float):
-    global player_move_speed
-    x=math.cos(look_x)*player_move_speed
-    z=math.sin(look_x)*player_move_speed
-    y=math.cos(look_y)*player_move_speed
-    return x,y,z
 def spectator_mode(button):
-    global player_see_x,player_see_y,player_x,player_y,player_z
-    x,y,z=formulas_of_trigonometri_functions_move(player_see_x,player_see_y)
+    global player_see_x,player_see_y,player_x,player_y,player_z,player_move_speed
+    x=math.cos(player_see_x)*player_move_speed
+    z=math.sin(player_see_x)*player_move_speed
+    y=math.cos(player_see_y)*player_move_speed
     if button==b's':
-        pass
-    elif button==b'w':
         x=-1*x
         y=-1*y
         z=-1*z
+    elif button==b'w':
+        pass
     player_x+=x
     player_y+=y
     player_z+=z
@@ -211,18 +243,18 @@ def mousemove(x,y):
     global lock_muose,mouse_fix_No1
     if lock_muose and mouse_fix_No1==5:
         global mouse_move_speed,player_see_x,player_see_y,window_width,window_long
-        player_see_x=(x-window_long)*mouse_move_speed+player_see_x
-        player_see_y=(y-window_width)*mouse_move_speed+player_see_y
+        player_see_x=(window_long-x)*mouse_move_speed+player_see_x
+        player_see_y=(window_width-y)*mouse_move_speed+player_see_y
         glutWarpPointer(window_long,window_width)
         mouse_fix_No1=1
         glutPostRedisplay()
         return 0
     mouse_fix_No1+=1
 def main():
-    global hwnd,window_width,window_long,debug_text
+    global window_width,window_long,debug_text
     #进行glut的最基础初始化
     glutInit()
-    glutInitDisplayMode(GLUT_DOUBLE | GLUT_ALPHA | GLUT_DEPTH)
+    glutInitDisplayMode(GLUT_DOUBLE|GLUT_ALPHA|GLUT_DEPTH)
     glutCreateWindow("Minecraft 重置版 ByWzq".encode('GBK',errors="replace"))
     glutSetCursor(GLUT_CURSOR_NONE)
     #使用户无法更改窗口大小
@@ -230,9 +262,6 @@ def main():
     A=win32gui.GetWindowLong(hwnd,win32con.GWL_STYLE)
     A ^=win32con.WS_THICKFRAME
     win32gui.SetWindowLong(hwnd,win32con.GWL_STYLE,A)
-    #Debug信息的初始化
-    debug_text.append(['XYZ:',0.0,',',0.0,',',0.0])
-    debug_text.append(['EYE:',0,',',0])
     #完成其余的初始化
     glutReshapeWindow(window_long*2,window_width*2)
     glViewport(0,0,window_long*2,window_width*2)
@@ -243,4 +272,5 @@ def main():
     glutKeyboardFunc(keyboardchange)
     glutPassiveMotionFunc(mousemove)
     glutMainLoop()
+#代码看完了吗？帮忙提点建议吧！
 main()
