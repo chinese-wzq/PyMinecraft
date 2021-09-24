@@ -1,12 +1,12 @@
 # coding=utf-8
-# 不会吧不会吧还有人不知道UTF-8??????
+# Always believe,always hope。
 
-#感谢您查看我的作品！
+#感谢您的遇见！
 #本项目唯一地址（没有码云地址哦）：
 #https://github.com/yi-ge-shuai-qi-de-kai-fa-zhe/PyMinecraft
 #如果你发现有无良程序员大量盗用本程序代码并且未加声明的
-#欢迎你与他对线，并且将他的作品地址发给我（让我康康♂）
-#以下为生命以及一些介绍，如果有不符合规范的欢迎提出拉取请求，我不懂开源协议，太多了QAQ
+#欢迎你与他对线，并且将他的作品地址发给我（让我康康啊♂）
+#以下为程序声明以及一些介绍，如果有不符合规范的欢迎提出拉取请求，我不懂开源协议，太多了QAQ
 
 #################################################
 #                本作品为兴趣使然                #
@@ -66,8 +66,7 @@ debug=True
 map=[[],[[[],[[[],[1]]]]]]
 block_color=[(50,205,50)]
 debug_text=[['XYZ:',0.0,',',0.0,',',0.0],
-            ['EYE:',0,',',0],
-            ['EDB:',0,',',0],]
+            ['EYE:',0,',',0],]
 def get_two_float(num:float):
     a,b,c=str(num).partition('.')
     c=c.zfill(2)[:2]
@@ -186,17 +185,32 @@ def draw():
     #这个函数的参数只定义近裁剪平面的左下角点和右上角点的三维空间坐标，即（left，bottom，-near）和（right，top，-near)
     glMatrixMode(GL_MODELVIEW)
     glLoadIdentity()
-    #这里是暂时用来调试的
-    global debug_text
-    w=math.sin(player_see_x)*2
-    a=debug_text[2]
-    a[1]=get_two_float(w)
-    ww=math.sin(player_see_y)*2
-    a[3]=get_two_float(ww)
-    debug_text[2]=a
+    x=0
+    y=0
+    z=0
+    #计算视角望向的位置
+    #我还没有学过三角函数，因此如果输入负数也能正常使用，以下代码可以更加简洁。请帮忙改一改哈😀
+    if player_see_x>=0:
+        if player_see_x>90:
+            x=math.cos(player_see_x-90)
+            z=math.sin(player_see_x-90)*-1
+        else:
+            x=math.sin(player_see_x)
+            z=math.cos(player_see_x)
+    else:
+        if player_see_x<-90:
+            x=math.cos((player_see_x+90)*-1)*-1
+            z=math.sin((player_see_x+90)*-1)*-1
+        else:
+            x=math.sin(player_see_x*-1)*-1
+            z=math.cos(player_see_x*-1)
+    if player_see_y>=0:
+        y=math.sin(player_see_y)
+    else:
+        y=math.sin(player_see_y*-1)*-1
     gluLookAt(
         player_x,player_y+1,player_z,
-        player_x+w,player_y+ww,0,
+        player_x+x,player_y+y,player_z+z,
         0,1,0
     )
     #渲染方块
@@ -245,6 +259,10 @@ def mousemove(x,y):
         global mouse_move_speed,player_see_x,player_see_y,window_width,window_long
         player_see_x=(window_long-x)*mouse_move_speed+player_see_x
         player_see_y=(window_width-y)*mouse_move_speed+player_see_y
+        #这里增加了数值限制，防止过头，因为是实测的数据，可能有不准，见谅~
+        if player_see_y>1.5:player_see_y=1.5
+        if player_see_y<-1.5:player_see_y=-1.5
+        if player_see_x>3:player_see_x-=6
         glutWarpPointer(window_long,window_width)
         mouse_fix_No1=1
         glutPostRedisplay()
