@@ -1,5 +1,7 @@
 # python&Minecraft,所以叫做"PyMinecraft"
 ******************************************************************************
+<a href="https://info.flagcounter.com/zBbk"><img src="https://s05.flagcounter.com/map/zBbk/size_l/txt_000000/border_CCCCCC/pageviews_1/viewers_0/flags_0/" alt="Flag Counter" border="0"></a>
+******************************************************************************
 # 本项目仅支持Windows（其实只需要进行小小的移植，但是我懒）
 ******************************************************************************
 # 如果您想鼓励我，给我点个免费的Star吧，实在不行写几条代码给我也行啊QAQ
