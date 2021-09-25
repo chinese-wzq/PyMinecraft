@@ -51,7 +51,7 @@ look_length=9  #渲染距离,只支持不小于1的奇数
 highest_y=100  #世界最高Y坐标
 lowest_y=0   #世界最低Y坐标
 player_x=0
-player_y=0
+player_y=-1
 player_z=-1
 font="Microsoft YaHei UI"    #显示文字时使用的字体
 window_long=400    #窗口的长与宽
@@ -77,7 +77,7 @@ def find_block(x:int,y:int,z:int):
         return map[x>=0][abs(x)][y>=0][abs(y)][z>=0][abs(z)]
     except:
         return 0
-def print_blocks(sx:int,sy:int,sz:int):
+def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，不会全部显示一遍，多伤显卡QAQ
     sx=int(sx)
     sy=int(sy)
     sz=int(sz)
@@ -210,7 +210,7 @@ def draw():
         y=math.sin(player_see_y*-1)*-1
     gluLookAt(
         player_x,player_y+1,player_z,
-        player_x+x,player_y+y,player_z+z,
+        player_x+x,player_y+y+1,player_z+z,
         0,1,0
     )
     #渲染方块
