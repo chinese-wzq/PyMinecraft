@@ -84,7 +84,7 @@ def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，�
             for z in range(by_13905069[0],by_13905069[1]):
                 by_wzq=find_block(x,y,z)
                 if not by_wzq==0:
-                    #这里先粗略写一下
+                    #图盗的
                     #    v4----- v5
                     #   /|      /|
                     #  v0------v1|
@@ -92,23 +92,39 @@ def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，�
                     #  | v7----|-v6
                     #  |/      |/
                     #  v3------v2
-                    #盗图大师
                     color=block_color[by_wzq-1]
-                    glBegin(GL_QUAD_STRIP)
+                    glBegin(GL_QUADS)#使用GL_QUADS是为了以后的遮挡更新做准备
                     glColor3ub(color[0],color[1],color[2])
+                    #上
                     glVertex3f(x-0.5,y+0.5,z-0.5)#V0
                     glVertex3f(x+0.5,y+0.5,z-0.5)#V1
+                    glVertex3f(x+0.5,y+0.5,z+0.5)#V5
+                    glVertex3f(x-0.5,y+0.5,z+0.5)#V4
+                    #下
                     glVertex3f(x-0.5,y-0.5,z-0.5)#V3
                     glVertex3f(x+0.5,y-0.5,z-0.5)#V2
-                    ###########待施工###########
-                    # glVertex3f(x+0.5,y-0.5,z+0.5)#V6
-                    # glVertex3f(x-0.5,y-0.5,z+0.5)#V7
-                    # glVertex3f(x-0.5,y+0.5,z-0.5)#V0
-                    # glVertex3f(x+0.5,y+0.5,z-0.5)#V1
-                    # glVertex3f(x+0.5,y+0.5,z+0.5)#V5
-                    # glVertex3f(x-0.5,y+0.5,z+0.5)#V4
-                    # glVertex3f(x-0.5,y-0.5,z-0.5)#V3
-                    # glVertex3f(x+0.5,y-0.5,z-0.5)#V3
+                    glVertex3f(x+0.5,y-0.5,z+0.5)#V6
+                    glVertex3f(x-0.5,y-0.5,z+0.5)#V7
+                    #左
+                    glVertex3f(x-0.5,y+0.5,z-0.5)#V0
+                    glVertex3f(x-0.5,y-0.5,z-0.5)#V3
+                    glVertex3f(x-0.5,y-0.5,z+0.5)#V7
+                    glVertex3f(x-0.5,y+0.5,z+0.5)#V4
+                    #右
+                    glVertex3f(x+0.5,y+0.5,z-0.5)#V1
+                    glVertex3f(x+0.5,y-0.5,z-0.5)#V2
+                    glVertex3f(x+0.5,y-0.5,z+0.5)#V6
+                    glVertex3f(x+0.5,y+0.5,z+0.5)#V5
+                    #前
+                    glVertex3f(x-0.5,y+0.5,z-0.5)#V0
+                    glVertex3f(x+0.5,y+0.5,z-0.5)#V1
+                    glVertex3f(x+0.5,y-0.5,z-0.5)#V2
+                    glVertex3f(x-0.5,y-0.5,z-0.5)#V3
+                    #后
+                    glVertex3f(x-0.5,y+0.5,z+0.5)#V4
+                    glVertex3f(x+0.5,y+0.5,z+0.5)#V5
+                    glVertex3f(x+0.5,y-0.5,z+0.5)#V6
+                    glVertex3f(x-0.5,y-0.5,z+0.5)#V7
                     glEnd()
 def print_text_list(text:list,debug_hDC:int,callback=None,x=0,y=0):
     global font,window_width
@@ -228,8 +244,8 @@ def spectator_mode(button):
         x,y,z=view_orientations(player_see_x,player_see_y,walk_left)
         if button==b'd':
             x*=-1
-            y*=-1
             z*=-1
+        y=0
     player_x+=x*player_move_speed
     player_y+=y*player_move_speed
     player_z+=z*player_move_speed
@@ -252,6 +268,7 @@ def keyboardchange(button,x,y):
         global debug
         if debug:debug=False
         else:debug=True
+        glutPostRedisplay()
     else:
         print(button)
 def mousemove(x,y):
