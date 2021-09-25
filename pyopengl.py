@@ -67,10 +67,6 @@ map=[[],[[[],[[[],[1]]]]]]
 block_color=[(50,205,50)]
 debug_text=[['XYZ:',0.0,',',0.0,',',0.0],
             ['EYE:',0,',',0],]
-def get_two_float(num:float):
-    a,b,c=str(num).partition('.')
-    c=c.zfill(2)[:2]
-    return float(a+b+c)
 def find_block(x:int,y:int,z:int):
     global map
     try:
@@ -164,13 +160,13 @@ def debug_main():
         glVertex3f(0,0,1)
         glEnd()
         a=debug_text[0]
-        a[1]=get_two_float(player_x)
-        a[3]=get_two_float(player_y)
-        a[5]=get_two_float(player_z)
+        a[1]=round(player_x,2)
+        a[3]=round(player_y,2)
+        a[5]=round(player_z,2)
         debug_text[0]=a
         a=debug_text[1]
-        a[1]=get_two_float(player_see_x)
-        a[3]=get_two_float(player_see_y)
+        a[1]=round(player_see_x,2)
+        a[3]=round(player_see_y,2)
         debug_text[1]=a
         #调用文字显示函数显示debug内容，并顺便打印文字出来
         print_text_list(debug_text,wglGetCurrentDC(),debug_print_coordinates_text)
@@ -260,8 +256,8 @@ def mousemove(x,y):
         player_see_x=(window_long-x)*mouse_move_speed+player_see_x
         player_see_y=(window_width-y)*mouse_move_speed+player_see_y
         #这里增加了数值限制，防止过头，因为是实测的数据，可能有不准，见谅~
-        if player_see_y>1.5:player_see_y=1.5
-        if player_see_y<-1.5:player_see_y=-1.5
+        if player_see_y>2:player_see_y=2
+        if player_see_y<-2:player_see_y=-2
         if player_see_x>3:player_see_x-=6
         glutWarpPointer(window_long,window_width)
         mouse_fix_No1=1
