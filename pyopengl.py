@@ -170,22 +170,9 @@ def debug_main():
         debug_text[1]=a
         #调用文字显示函数显示debug内容，并顺便打印文字出来
         print_text_list(debug_text,wglGetCurrentDC(),debug_print_coordinates_text)
-def draw():
-    global player_see_x,player_see_y,player_x,player_y,player_z
-    glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
-    glMatrixMode(GL_PROJECTION)
-    glLoadIdentity()
-    glFrustum(-0.3,0.3,-0.3,0.3,0.1,3)
-    #笔记：
-    #glFrustum(left,right,bottom,top,zNear,zFar)
-    #这个函数的参数只定义近裁剪平面的左下角点和右上角点的三维空间坐标，即（left，bottom，-near）和（right，top，-near)
-    glMatrixMode(GL_MODELVIEW)
-    glLoadIdentity()
-    x=0
-    y=0
-    z=0
-    #计算视角望向的位置
+def view_orientations(player_see_x,player_see_y,callback=None):
     #我还没有学过三角函数，因此如果输入负数也能正常使用，以下代码可以更加简洁。请帮忙改一改哈😀
+    if not callback==None:player_see_x,player_see_y=callback(player_see_x,player_see_y)
     if player_see_x>=0:
         if player_see_x>90:
             x=math.cos(player_see_x-90)
@@ -204,6 +191,20 @@ def draw():
         y=math.sin(player_see_y)
     else:
         y=math.sin(player_see_y*-1)*-1
+    return x,y,z
+def draw():
+    global player_see_x,player_see_y,player_x,player_y,player_z
+    glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
+    glMatrixMode(GL_PROJECTION)
+    glLoadIdentity()
+    glFrustum(-0.3,0.3,-0.3,0.3,0.1,3)
+    #笔记：
+    #glFrustum(left,right,bottom,top,zNear,zFar)
+    #这个函数的参数只定义近裁剪平面的左下角点和右上角点的三维空间坐标，即（left，bottom，-near）和（right，top，-near)
+    glMatrixMode(GL_MODELVIEW)
+    glLoadIdentity()
+    #计算视角望向的位置
+    x,y,z=view_orientations(player_see_x,player_see_y)
     gluLookAt(
         player_x,player_y+1,player_z,
         player_x+x,player_y+y+1,player_z+z,
@@ -214,20 +215,24 @@ def draw():
     #调试模式
     debug_main()
     glutSwapBuffers()
+def walk_left(a,b):return a+1.57,b#1.57是实测出来的数据~
 def spectator_mode(button):
     global player_see_x,player_see_y,player_x,player_y,player_z,player_move_speed
-    x=math.cos(player_see_x)*player_move_speed
-    z=math.sin(player_see_x)*player_move_speed
-    y=math.cos(player_see_y)*player_move_speed
-    if button==b's':
-        x=-1*x
-        y=-1*y
-        z=-1*z
-    elif button==b'w':
-        pass
-    player_x+=x
-    player_y+=y
-    player_z+=z
+    if button in [b'w',b's']:
+        x,y,z=view_orientations(player_see_x,player_see_y)
+        if button==b's':
+            x*=-1
+            y*=-1
+            z*=-1
+    else:
+        x,y,z=view_orientations(player_see_x,player_see_y,walk_left)
+        if button==b'd':
+            x*=-1
+            y*=-1
+            z*=-1
+    player_x+=x*player_move_speed
+    player_y+=y*player_move_speed
+    player_z+=z*player_move_speed
     glutPostRedisplay()
 def keyboardchange(button,x,y):
     if button==b'\x1b':#是否开启鼠标控制
@@ -241,7 +246,7 @@ def keyboardchange(button,x,y):
             mouse_fix_No1=1
             glutSetCursor(GLUT_CURSOR_NONE)
             glutPostRedisplay()
-    elif button==b'w' or button==b's':
+    elif button in [b'w',b's',b'a',b'd']:
         spectator_mode(button)
     elif button==b'`':#调试模式
         global debug
