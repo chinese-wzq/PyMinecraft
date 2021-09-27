@@ -8,25 +8,29 @@
 #欢迎你与他对线，并且将他的作品地址发给我（让我康康啊♂）
 #以下为程序声明以及一些介绍，如果有不符合规范的欢迎提出拉取请求，我不懂开源协议，太多了QAQ
 
-#################################################
-#                本作品为兴趣使然                #
-#             我并没有收过任何人的钱财            #
-#             也没有与任何人有契约关系            #
-#     本作品与MOJANG工作室（BUGJUMP）没有任何关系 #
-#     我从来没有查看过Minecraft的源码（反正看不懂）#
-#      本作品仅供学习、娱乐，商用请注明项目地址    #
-#        欢迎提交拉取请求，这是对我最大的支持      #
-#    我也只是一个小小的初二生，很多数学计算略为粗糙 #
-#            因此希望您帮助改进我的算法           #
+#本程序使用字体：JetBrains Mono，字体不同可能会出现程序内的注释排版紊乱！
+
+#本程序部分行较长。为什么？因为觉得这样很爽（莫名）
+
 ################################################
-#            本游戏是开源的，所有人可编辑         #
-#           因此，我才能尽量保证代码的安全性      #
-#          本游戏从设计之初就采用了超多函数设置   #
-#          这时的游戏的大部分函数具有参考价值     #
-#             如果本游戏的某些函数帮到了您       #
-#        欢迎您在项目地址上点一个免费的Star（星） #
-#             你的星会成为我Coding的动力        #
-###############################################
+#                本作品为兴趣使然                 #
+#             我并没有收过任何人的钱财              #
+#             也没有与任何人有契约关系              #
+#     本作品与MOJANG工作室（BUGJUMP）没有任何关系    #
+#     我从来没有查看过Minecraft的源码（反正看不懂）   #
+#      本作品仅供学习、娱乐，商用请注明项目地址        #
+#        欢迎提交拉取请求，这是对我最大的支持         #
+#    我也只是一个小小的初二生，很多数学计算略为粗糙     #
+#            因此希望您帮助改进我的算法             #
+################################################
+#            本游戏是开源的，所有人可编辑           #
+#           因此，我才能尽量保证代码的安全性         #
+#          本游戏从设计之初就采用了超多函数设置       #
+#          这使得游戏的大部分函数具有参考价值        #
+#             如果本游戏的某些函数帮到了您          #
+#        欢迎您在项目地址上点一个免费的Star（星）     #
+#             你的星会成为我Coding的动力           #
+################################################
 
 #################感谢与你相遇！###################
 
@@ -42,20 +46,25 @@ from OpenGL.WGL import *
 import math
 #导入窗口相关库
 import win32con,win32gui
-
+#导入区块读取相关库
+import json
+#导入性能测试相关库
+import time
 #允许用户自定义的变量
 #已将大部分变量做好注释
 mouse_move_speed=0.01 #鼠标移动距离
 player_move_speed=0.01
 look_length=9  #渲染距离,只支持不小于1的奇数
 highest_y=100  #世界最高Y坐标
-lowest_y=0   #世界最低Y坐标
-player_x=0
+lowest_y=0   #世界最低Y坐标，目前如果更改将会报错！
+player_x=0    #这几个不必细说，都懂都懂
 player_y=-1
 player_z=-1
 font="Microsoft YaHei UI"    #显示文字时使用的字体
 window_long=400    #窗口的长与宽
 window_width=400
+saves_folder_dir="D:\\桌面\\PyMinecraft\\saves\\"   #指定了存储所有存档的文件夹的位置
+save_folder_dir="D:\\桌面\\PyMinecraft\\saves\\example\\"
 
 #用户不应该动的变量
 player_see_x=0
@@ -63,26 +72,86 @@ player_see_y=0
 lock_muose=False
 mouse_fix_No1=5
 debug=True
-map=[[],[[[],[[[],[1]]]]]]
+map=[]
 block_color=[(50,205,50)]
 debug_text=[['XYZ:',0.0,',',0.0,',',0.0],
             ['EYE:',0,',',0],]
-def find_block(x:int,y:int,z:int):
-    global map
+block_size=11   #必须为单数
+buffer_block_size=15   #也必须为单数
+
+def write_list(wait_write_list:list,write:str,i,ii=None,iii=None,iiii=None,fill=0):
+    if len(wait_write_list)<=i:
+        while len(wait_write_list)>i:wait_write_list.append(fill)
+    if len(wait_write_list[i])<=ii | ii is not None:
+        while len(wait_write_list)>ii: wait_write_list[i].append(fill)
+    if len(wait_write_list[ii])<=iii | iii is not None:
+        while len(wait_write_list)>iii: wait_write_list[ii].append(fill)
+    if len(wait_write_list[iii])<=iiii | iiii is not None:
+        while len(wait_write_list)>iiii: wait_write_list[iii].append(fill)
+    if ii is None:wait_write_list[i]=write
+    elif iii is None: wait_write_list[i][ii]=write
+    elif iiii is None: wait_write_list[i][ii][iii]=write
+    else:wait_write_list[i][ii][iii][iiii]=write
+    return wait_write_list
+def read_block(x:int,y:int,z:int):#此模块包装了读取方块的代码,未来可能也会把世界生成的代码放里边！
+    #本代码目前过于卡顿，将会进行优化
+
+    #以下为基本原理：
+    #1.先计算输入坐标位于的区块位置
+    #2.读取区块文件，并将区块放入map进行缓存
+    #                               ↑
+    #将区块放入缓存中，并卸载超出缓存区域的区块，关于map的区块索引结构结构：（存在负数，每层需要两层，一层正一层负）
+    #                                                         第一层：区块的X
+    #                                                         第二层：区块的Z
+    #                                                         此索引方法虽然会出现许多空的项，但是比全部载入对内存的消耗少得多了
+    #3.从区块里读取指定位置方块,索引方法：（不存在负数情况），随后返回指定位置方块
+    #                              第一层：Y
+    #                              第二层：X
+    #                              第二层：Z
+    #预计代码行数：50行吧？
+    global map,block_size,buffer_block_size,save_folder_dir
+    #第一步
+    if int(x/(block_size/2))==0:block_X=0
+    elif x<0:block_X=math.ceil((x+block_size/2)/block_size)
+    else:block_X=math.ceil((x-block_size/2)/block_size)
+    if int(z/(block_size/2))==0:block_Z=0
+    elif z<0:block_Z=math.ceil((z+block_size/2)/block_size)
+    else:block_Z=math.ceil((z-block_size/2)/block_size)
+    #第二步，这里决定先卸载再载入
+    for i in range(len(map)):
+        for ii in range(len(map[i])):
+            for iii in range(len(map[i][ii])):
+                for iiii in range(len(map[i][ii][iii])):
+                    if i>0:a=ii
+                    else:a=ii*-1-1
+                    if iii>0:aa=iiii
+                    else:aa=iiii*-1-1
+                    if not block_X-(buffer_block_size-1)/2<=a<=block_X+(buffer_block_size-1)/2 or block_Z-(buffer_block_size-1)/2<=aa<=block_Z+(buffer_block_size-1)/2:map[i][ii][iii][iiii]=0
     try:
-        return map[x>=0][abs(x)][y>=0][abs(y)][z>=0][abs(z)]
-    except:
-        return 0
+        if not map[block_X>=0][block_X+int(block_X<0)][block_Z>=0][block_Z+int(block_Z<0)]:raise IndexError
+    except IndexError:
+        try:
+            with open(save_folder_dir+str(block_X)+','+str(block_Z)) as a:map=write_list(map,json.load(a),0,block_X>=0,block_X+int(block_X<0),block_Z>=0,block_Z+int(block_Z<0))
+        except FileNotFoundError:return 0
+    #第三步
+    #    v4----- v5
+    #   /|      /|
+    #  v0------v1|
+    #  | |↗    | |
+    #  | v7----|-v6
+    #  |/      |/
+    #  v3------v2→
+    #目标就是先求出区块中心，随后求出V3这个点的位置，然后换算坐标进入区块坐标系
+    return map[block_X>=0][block_X+int(block_X<0)][block_Z>=0][block_Z+int(block_Z<0)][x-(block_size-1)/-2-block_X*block_size][y-1][x-(block_size-1)/-2-block_Z*block_size]
 def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，不会全部显示一遍，多伤显卡QAQ
     sx=int(sx)
-    sy=int(sy)
     sz=int(sz)
     global look_length,highest_y,lowest_y,block_color
     by_13905069=(sx-int((look_length-1)/2),sz+int((look_length-1)/2)+1)
     for x in range(by_13905069[0],by_13905069[1]):
         for y in range(lowest_y,highest_y+1):
             for z in range(by_13905069[0],by_13905069[1]):
-                by_wzq=find_block(x,y,z)
+                by_wzq=read_block(x,y,z)
                 if not by_wzq==0:
                     #图盗的
                     #    v4----- v5
@@ -186,31 +255,31 @@ def debug_main():
         debug_text[1]=a
         #调用文字显示函数显示debug内容，并顺便打印文字出来
         print_text_list(debug_text,wglGetCurrentDC(),debug_print_coordinates_text)
-def view_orientations(player_see_x,player_see_y,callback=None):
+def view_orientations(x,y,callback=None):
     #我还没有学过三角函数，因此如果输入负数也能正常使用，以下代码可以更加简洁。请帮忙改一改哈😀
-    if not callback==None:player_see_x,player_see_y=callback(player_see_x,player_see_y)
-    if player_see_x>=0:
-        if player_see_x>90:
-            x=math.cos(player_see_x-90)
-            z=math.sin(player_see_x-90)*-1
+    if callback is not None: x,y=callback(x,y)
+    if x>=0:
+        if x>90:
+            x=math.cos(x-90)
+            z=math.sin(x-90)*-1
         else:
-            x=math.sin(player_see_x)
-            z=math.cos(player_see_x)
+            x=math.sin(x)
+            z=math.cos(x)
     else:
-        if player_see_x<-90:
-            x=math.cos((player_see_x+90)*-1)*-1
-            z=math.sin((player_see_x+90)*-1)*-1
+        if x<-90:
+            x=math.cos((x+90)*-1)*-1
+            z=math.sin((x+90)*-1)*-1
         else:
-            x=math.sin(player_see_x*-1)*-1
-            z=math.cos(player_see_x*-1)
-    if player_see_y>=0:
-        y=math.sin(player_see_y)
+            x=math.sin(x*-1)*-1
+            z=math.cos(x*-1)
+    if y>=0:
+        y=math.sin(y)
     else:
-        y=math.sin(player_see_y*-1)*-1
+        y=math.sin(y*-1)*-1
     return x,y,z
 def draw():
     global player_see_x,player_see_y,player_x,player_y,player_z
-    glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     glMatrixMode(GL_PROJECTION)
     glLoadIdentity()
     glFrustum(-0.3,0.3,-0.3,0.3,0.1,3)
@@ -290,7 +359,7 @@ def main():
     global window_width,window_long,debug_text
     #进行glut的最基础初始化
     glutInit()
-    glutInitDisplayMode(GLUT_DOUBLE|GLUT_ALPHA|GLUT_DEPTH)
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_ALPHA | GLUT_DEPTH)
     glutCreateWindow("Minecraft 重置版 ByWzq".encode('GBK',errors="replace"))
     glutSetCursor(GLUT_CURSOR_NONE)
     #使用户无法更改窗口大小
