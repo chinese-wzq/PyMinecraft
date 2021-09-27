@@ -47,9 +47,8 @@ import math
 #导入窗口相关库
 import win32con,win32gui
 #导入区块读取相关库
-import json
-#导入性能测试相关库
-import time
+import json,os
+
 #允许用户自定义的变量
 #已将大部分变量做好注释
 mouse_move_speed=0.01 #鼠标移动距离
@@ -64,7 +63,7 @@ font="Microsoft YaHei UI"    #显示文字时使用的字体
 window_long=400    #窗口的长与宽
 window_width=400
 saves_folder_dir="D:\\桌面\\PyMinecraft\\saves\\"   #指定了存储所有存档的文件夹的位置
-save_folder_dir="D:\\桌面\\PyMinecraft\\saves\\example\\"
+save_folder_dir="D:\\桌面\\PyMinecraft\\saves\\example\\"   #指定了存储单个存档的文件夹的位置
 
 #用户不应该动的变量
 player_see_x=0
@@ -78,7 +77,8 @@ debug_text=[['XYZ:',0.0,',',0.0,',',0.0],
             ['EYE:',0,',',0],]
 block_size=11   #必须为单数
 buffer_block_size=15   #也必须为单数
-
+try:save_folder_files_list=os.listdir(save_folder_dir)
+except FileNotFoundError:save_folder_files_list=[]
 def write_list(wait_write_list:list,write:str,i,ii=None,iii=None,iiii=None,fill=0):
     if len(wait_write_list)<=i:
         while len(wait_write_list)>i:wait_write_list.append(fill)
@@ -108,8 +108,7 @@ def read_block(x:int,y:int,z:int):#此模块包装了读取方块的代码,未�
     #                              第一层：Y
     #                              第二层：X
     #                              第二层：Z
-    #预计代码行数：50行吧？
-    global map,block_size,buffer_block_size,save_folder_dir
+    global map,block_size,buffer_block_size,save_folder_dir,save_folder_files_list
     #第一步
     if int(x/(block_size/2))==0:block_X=0
     elif x<0:block_X=math.ceil((x+block_size/2)/block_size)
@@ -130,9 +129,10 @@ def read_block(x:int,y:int,z:int):#此模块包装了读取方块的代码,未�
     try:
         if not map[block_X>=0][block_X+int(block_X<0)][block_Z>=0][block_Z+int(block_Z<0)]:raise IndexError
     except IndexError:
-        try:
+        if str(block_X)+','+str(block_Z) in save_folder_files_list:
             with open(save_folder_dir+str(block_X)+','+str(block_Z)) as a:map=write_list(map,json.load(a),0,block_X>=0,block_X+int(block_X<0),block_Z>=0,block_Z+int(block_Z<0))
-        except FileNotFoundError:return 0
+        else:
+            return 0
     #第三步
     #    v4----- v5
     #   /|      /|
@@ -141,7 +141,7 @@ def read_block(x:int,y:int,z:int):#此模块包装了读取方块的代码,未�
     #  | v7----|-v6
     #  |/      |/
     #  v3------v2→
-    #目标就是先求出区块中心，随后求出V3这个点的位置，然后换算坐标进入区块坐标系
+    #目标就是先求出区块中心，随后求出V3这个点的位置，最后换算坐标进入区块坐标系
     return map[block_X>=0][block_X+int(block_X<0)][block_Z>=0][block_Z+int(block_Z<0)][x-(block_size-1)/-2-block_X*block_size][y-1][x-(block_size-1)/-2-block_Z*block_size]
 def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，不会全部显示一遍，多伤显卡QAQ
     sx=int(sx)
@@ -255,27 +255,27 @@ def debug_main():
         debug_text[1]=a
         #调用文字显示函数显示debug内容，并顺便打印文字出来
         print_text_list(debug_text,wglGetCurrentDC(),debug_print_coordinates_text)
-def view_orientations(x,y,callback=None):
+def view_orientations(px,py,callback=None):
     #我还没有学过三角函数，因此如果输入负数也能正常使用，以下代码可以更加简洁。请帮忙改一改哈😀
-    if callback is not None: x,y=callback(x,y)
-    if x>=0:
-        if x>90:
-            x=math.cos(x-90)
-            z=math.sin(x-90)*-1
+    if callback is not None: x,y=callback(px,py)
+    if px>=0:
+        if px>90:
+            x=math.cos(px-90)
+            z=math.sin(px-90)*-1
         else:
-            x=math.sin(x)
-            z=math.cos(x)
+            x=math.sin(px)
+            z=math.cos(px)
     else:
-        if x<-90:
-            x=math.cos((x+90)*-1)*-1
-            z=math.sin((x+90)*-1)*-1
+        if px<-90:
+            x=math.cos((px+90)*-1)*-1
+            z=math.sin((px+90)*-1)*-1
         else:
-            x=math.sin(x*-1)*-1
-            z=math.cos(x*-1)
-    if y>=0:
-        y=math.sin(y)
+            x=math.sin(px*-1)*-1
+            z=math.cos(px*-1)
+    if py>=0:
+        y=math.sin(py)
     else:
-        y=math.sin(y*-1)*-1
+        y=math.sin(py*-1)*-1
     return x,y,z
 def draw():
     global player_see_x,player_see_y,player_x,player_y,player_z
@@ -350,6 +350,7 @@ def mousemove(x,y):
         if player_see_y>2:player_see_y=2
         if player_see_y<-2:player_see_y=-2
         if player_see_x>3:player_see_x-=6
+        if player_see_x<-3: player_see_x+=6
         glutWarpPointer(window_long,window_width)
         mouse_fix_No1=1
         glutPostRedisplay()
