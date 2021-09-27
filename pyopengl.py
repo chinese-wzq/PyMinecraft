@@ -35,6 +35,8 @@
 #################感谢与你相遇！###################
 
 #导入OpenGL相关库
+import copy
+
 import win32api
 import win32ui
 from OpenGL.GL import *
@@ -79,23 +81,22 @@ block_size=11   #必须为单数
 buffer_block_size=15   #也必须为单数
 try:save_folder_files_list=os.listdir(save_folder_dir)
 except FileNotFoundError:save_folder_files_list=[]
-def write_list(wait_write_list:list,write:str,i,ii=None,iii=None,iiii=None,fill=0):
+def write_list(wait_write_list_a:list,write:str,i:int,ii=None,iii=None,iiii=None,fill=0):
+    wait_write_list=wait_write_list_a
     if len(wait_write_list)<=i:
-        while len(wait_write_list)>i:wait_write_list.append(fill)
-    if len(wait_write_list[i])<=ii | ii is not None:
-        while len(wait_write_list)>ii: wait_write_list[i].append(fill)
-    if len(wait_write_list[ii])<=iii | iii is not None:
-        while len(wait_write_list)>iii: wait_write_list[ii].append(fill)
-    if len(wait_write_list[iii])<=iiii | iiii is not None:
-        while len(wait_write_list)>iiii: wait_write_list[iii].append(fill)
+        while len(wait_write_list)<=i:wait_write_list.append(copy.copy(fill))#卧槽内存机制太TM坑爹了
+    if len(wait_write_list[i])<=ii:
+        while len(wait_write_list[i])<=ii:wait_write_list[i].append(copy.copy(fill))
+    if len(wait_write_list[i][ii])<=iii:
+        while len(wait_write_list[i][ii])<=iii: wait_write_list[i][ii].append(copy.copy(fill))
+    if len(wait_write_list[i][ii][iii])<=iiii:
+        while len(wait_write_list[i][ii][iii])<=iiii: wait_write_list[i][ii][iii].append(copy.copy(fill))
     if ii is None:wait_write_list[i]=write
     elif iii is None: wait_write_list[i][ii]=write
     elif iiii is None: wait_write_list[i][ii][iii]=write
     else:wait_write_list[i][ii][iii][iiii]=write
     return wait_write_list
 def read_block(x:int,y:int,z:int):#此模块包装了读取方块的代码,未来可能也会把世界生成的代码放里边！
-    #本代码目前过于卡顿，将会进行优化
-
     #以下为基本原理：
     #1.先计算输入坐标位于的区块位置
     #2.读取区块文件，并将区块放入map进行缓存
@@ -125,12 +126,14 @@ def read_block(x:int,y:int,z:int):#此模块包装了读取方块的代码,未�
                     else:a=ii*-1-1
                     if iii>0:aa=iiii
                     else:aa=iiii*-1-1
-                    if not block_X-(buffer_block_size-1)/2<=a<=block_X+(buffer_block_size-1)/2 or block_Z-(buffer_block_size-1)/2<=aa<=block_Z+(buffer_block_size-1)/2:map[i][ii][iii][iiii]=0
+                    if not block_X-(buffer_block_size-1)/2<=a<=block_X+(buffer_block_size-1)/2 or not block_Z-(buffer_block_size-1)/2<=aa<=block_Z+(buffer_block_size-1)/2:
+                        print("卸载")
+                        map[i][ii][iii][iiii]=0
     try:
         if not map[block_X>=0][block_X+int(block_X<0)][block_Z>=0][block_Z+int(block_Z<0)]:raise IndexError
     except IndexError:
         if str(block_X)+','+str(block_Z) in save_folder_files_list:
-            with open(save_folder_dir+str(block_X)+','+str(block_Z)) as a:map=write_list(map,json.load(a),0,block_X>=0,block_X+int(block_X<0),block_Z>=0,block_Z+int(block_Z<0))
+            with open(save_folder_dir+str(block_X)+','+str(block_Z)) as a:map=write_list(map,json.load(a),block_X>=0,block_X+int(block_X<0),block_Z>=0,block_Z+int(block_Z<0),[])
         else:
             return 0
     #第三步
@@ -142,7 +145,8 @@ def read_block(x:int,y:int,z:int):#此模块包装了读取方块的代码,未�
     #  |/      |/
     #  v3------v2→
     #目标就是先求出区块中心，随后求出V3这个点的位置，最后换算坐标进入区块坐标系
-    return map[block_X>=0][block_X+int(block_X<0)][block_Z>=0][block_Z+int(block_Z<0)][x-(block_size-1)/-2-block_X*block_size][y-1][x-(block_size-1)/-2-block_Z*block_size]
+    try:return map[block_X>=0][block_X+int(block_X<0)][block_Z>=0][block_Z+int(block_Z<0)][int(x-(block_size-1)/-2-block_X*block_size)][y][int(z-(block_size-1)/-2-block_Z*block_size)]
+    except IndexError:return 0
 def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，不会全部显示一遍，多伤显卡QAQ
     sx=int(sx)
     sz=int(sz)
