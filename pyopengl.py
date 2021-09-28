@@ -55,7 +55,7 @@ import json,os
 #已将大部分变量做好注释
 mouse_move_speed=0.01 #鼠标移动距离
 player_move_speed=0.01
-look_length=9  #渲染距离,只支持不小于1的奇数
+look_length=15  #渲染距离,只支持不小于1的奇数
 highest_y=100  #世界最高Y坐标
 lowest_y=0   #世界最低Y坐标，目前如果更改将会报错！
 player_x=0    #这几个不必细说，都懂都懂
@@ -66,8 +66,10 @@ window_long=400    #窗口的长与宽
 window_width=400
 saves_folder_dir="D:\\桌面\\PyMinecraft\\saves\\"   #指定了存储所有存档的文件夹的位置
 save_folder_dir="D:\\桌面\\PyMinecraft\\saves\\example\\"   #指定了存储单个存档的文件夹的位置
+load_all_save=True   #在启动时就加载所有的区块，并且不会执行卸载和加载的程序，降低程序卡顿
 
 #用户不应该动的变量
+save_folder_files_list=os.listdir(save_folder_dir)
 player_see_x=0
 player_see_y=0
 lock_muose=False
@@ -79,8 +81,11 @@ debug_text=[['XYZ:',0.0,',',0.0,',',0.0],
             ['EYE:',0,',',0],]
 block_size=11   #必须为单数
 buffer_block_size=15   #也必须为单数
-try:save_folder_files_list=os.listdir(save_folder_dir)
-except FileNotFoundError:save_folder_files_list=[]
+#区块加载的缓存变量
+temp1=block_size/2
+temp2=(buffer_block_size-1)/2
+temp7=(block_size-1)/-2
+
 def write_list(wait_write_list_a:list,write:str,i:int,ii=None,iii=None,iiii=None,fill=0):
     wait_write_list=wait_write_list_a
     if len(wait_write_list)<=i:
@@ -96,6 +101,14 @@ def write_list(wait_write_list_a:list,write:str,i:int,ii=None,iii=None,iiii=None
     elif iiii is None: wait_write_list[i][ii][iii]=write
     else:wait_write_list[i][ii][iii][iiii]=write
     return wait_write_list
+#如果设置为加载全部区块，则进行一些操作
+if load_all_save:
+    for i in save_folder_files_list:
+        a,b=i.split(",")
+        a=int(a)
+        b=int(b)
+        with open(save_folder_dir+str(a)+','+str(b)) as f: map=write_list(map,json.load(f),a>=0,a+int(a<0),b>=0,b+int(b<0),[])
+#@profile
 def read_block(x:int,y:int,z:int):#此模块包装了读取方块的代码,未来可能也会把世界生成的代码放里边！
     #以下为基本原理：
     #1.先计算输入坐标位于的区块位置
@@ -109,33 +122,37 @@ def read_block(x:int,y:int,z:int):#此模块包装了读取方块的代码,未�
     #                              第一层：Y
     #                              第二层：X
     #                              第二层：Z
-    global map,block_size,buffer_block_size,save_folder_dir,save_folder_files_list
+    global map,block_size,buffer_block_size,save_folder_dir,save_folder_files_list,load_all_save,temp1,temp2,temp7
     #第一步
-    if int(x/(block_size/2))==0:block_X=0
-    elif x<0:block_X=math.ceil((x+block_size/2)/block_size)
-    else:block_X=math.ceil((x-block_size/2)/block_size)
-    if int(z/(block_size/2))==0:block_Z=0
-    elif z<0:block_Z=math.ceil((z+block_size/2)/block_size)
-    else:block_Z=math.ceil((z-block_size/2)/block_size)
+    if int(x/temp1)==0:block_X=0
+    elif x<0:block_X=math.ceil((x+temp1)/block_size)
+    else:block_X=math.ceil((x-temp1)/block_size)
+    if int(z/temp1)==0:block_Z=0
+    elif z<0:block_Z=math.ceil((z+temp1)/block_size)
+    else:block_Z=math.ceil((z-temp1)/block_size)
     #第二步，这里决定先卸载再载入
-    for i in range(len(map)):
-        for ii in range(len(map[i])):
-            for iii in range(len(map[i][ii])):
-                for iiii in range(len(map[i][ii][iii])):
-                    if i>0:a=ii
-                    else:a=ii*-1-1
-                    if iii>0:aa=iiii
-                    else:aa=iiii*-1-1
-                    if not block_X-(buffer_block_size-1)/2<=a<=block_X+(buffer_block_size-1)/2 or not block_Z-(buffer_block_size-1)/2<=aa<=block_Z+(buffer_block_size-1)/2:
-                        print("卸载")
-                        map[i][ii][iii][iiii]=0
-    try:
-        if not map[block_X>=0][block_X+int(block_X<0)][block_Z>=0][block_Z+int(block_Z<0)]:raise IndexError
-    except IndexError:
-        if str(block_X)+','+str(block_Z) in save_folder_files_list:
-            with open(save_folder_dir+str(block_X)+','+str(block_Z)) as a:map=write_list(map,json.load(a),block_X>=0,block_X+int(block_X<0),block_Z>=0,block_Z+int(block_Z<0),[])
-        else:
-            return 0
+    temp3=block_X>=0
+    temp4=block_X+int(block_X<0)
+    temp5=block_Z>=0
+    temp6=block_Z+int(block_Z<0)
+    if not load_all_save:
+        for i in range(len(map)):
+            for ii in range(len(map[i])):
+                for iii in range(len(map[i][ii])):
+                    for iiii in range(len(map[i][ii][iii])):
+                        if i>0:a=ii
+                        else:a=ii*-1-1
+                        if iii>0:aa=iiii
+                        else:aa=iiii*-1-1
+                        if not block_X-temp2<=a<=block_X+temp2 or not block_Z-temp2<=aa<=block_Z+temp2:
+                            map[i][ii][iii][iiii]=0
+        try:
+            if not map[temp3][temp4][temp5][temp6]:raise IndexError
+        except IndexError:
+            if str(block_X)+','+str(block_Z) in save_folder_files_list:
+                with open(save_folder_dir+str(block_X)+','+str(block_Z)) as a:map=write_list(map,json.load(a),temp3,temp4,temp5,temp6,[])
+            else:
+                return 0
     #第三步
     #    v4----- v5
     #   /|      /|
@@ -145,8 +162,10 @@ def read_block(x:int,y:int,z:int):#此模块包装了读取方块的代码,未�
     #  |/      |/
     #  v3------v2→
     #目标就是先求出区块中心，随后求出V3这个点的位置，最后换算坐标进入区块坐标系
-    try:return map[block_X>=0][block_X+int(block_X<0)][block_Z>=0][block_Z+int(block_Z<0)][int(x-(block_size-1)/-2-block_X*block_size)][y][int(z-(block_size-1)/-2-block_Z*block_size)]
+    try:return map[temp3][temp4][temp5][temp6][int(x-temp7-block_X*block_size)][y][int(z-temp7-block_Z*block_size)]
     except IndexError:return 0
+# read_block(-5,0,-5)
+# read_block(-5,0,-4)
 def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，不会全部显示一遍，多伤显卡QAQ
     sx=int(sx)
     sz=int(sz)
@@ -286,7 +305,7 @@ def draw():
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     glMatrixMode(GL_PROJECTION)
     glLoadIdentity()
-    glFrustum(-0.3,0.3,-0.3,0.3,0.1,3)
+    glFrustum(-0.3,0.3,-0.3,0.3,0.1,8)
     #笔记：
     #glFrustum(left,right,bottom,top,zNear,zFar)
     #这个函数的参数只定义近裁剪平面的左下角点和右上角点的三维空间坐标，即（left，bottom，-near）和（right，top，-near)
@@ -361,7 +380,7 @@ def mousemove(x,y):
         return 0
     mouse_fix_No1+=1
 def main():
-    global window_width,window_long,debug_text
+    global window_width,window_long,debug_text,map,load_all_save
     #进行glut的最基础初始化
     glutInit()
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_ALPHA | GLUT_DEPTH)
@@ -381,6 +400,7 @@ def main():
     glutDisplayFunc(draw)
     glutKeyboardFunc(keyboardchange)
     glutPassiveMotionFunc(mousemove)
+    #正式开始运行
     glutMainLoop()
 #代码看完了吗？帮忙提点建议吧！
 main()
