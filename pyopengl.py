@@ -75,7 +75,6 @@ save_folder_files_list=os.listdir(save_folder_dir)
 player_see_x=0
 player_see_y=0
 lock_muose=False
-mouse_fix_No1=5
 debug=True
 map=[]
 block_color=[(50,205,50)]
@@ -349,14 +348,13 @@ def spectator_mode(button):
 def keyboarddown(button,x,y):
     global keyboard
     if not keyboard[b'\x1b'] and button==b'\x1b':#锁定或非锁定状态
-        global lock_muose,mouse_fix_No1,window_width,window_long
+        global lock_muose,window_width,window_long
         if lock_muose:
             lock_muose=False
             glutSetCursor(GLUT_CURSOR_LEFT_ARROW)
         else:
             glutWarpPointer(window_long,window_width)
             lock_muose=True
-            mouse_fix_No1=1
             glutSetCursor(GLUT_CURSOR_NONE)
             glutPostRedisplay()
     elif not keyboard[b'`'] and button==b'`':#调试模式
@@ -369,9 +367,10 @@ def keyboardup(button,x,y):
     global keyboard
     keyboard[button]=False
 def mousemove(x,y):
-    global lock_muose,mouse_fix_No1
-    if lock_muose and mouse_fix_No1==2:
-        global mouse_move_speed,player_see_x,player_see_y,window_width,window_long
+    global lock_muose,window_width,window_long
+    if lock_muose and window_long!=x and window_width!=y:
+        print(x,y)
+        global mouse_move_speed,player_see_x,player_see_y
         player_see_x=(window_long-x)*mouse_move_speed+player_see_x
         player_see_y=(window_width-y)*mouse_move_speed+player_see_y
         #这里增加了数值限制，防止过头，因为是实测的数据，可能有不准，见谅~
@@ -380,10 +379,7 @@ def mousemove(x,y):
         if player_see_x>3:player_see_x-=6
         if player_see_x<-3: player_see_x+=6
         glutWarpPointer(window_long,window_width)
-        mouse_fix_No1=1
         glutPostRedisplay()
-        return 0
-    mouse_fix_No1+=1
 def backgroud():
     global keyboard
     for i in [b'w',b's',b'a',b'd']:
