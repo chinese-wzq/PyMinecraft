@@ -86,6 +86,8 @@ buffer_block_size=15   #也必须为单数
 temp1=block_size/2#区块加载的缓存变量
 temp2=(buffer_block_size-1)/2
 temp7=(block_size-1)/-2
+keyboard={}
+for i in [b'\x1b',b'`',b'w',b's',b'a',b'd']:keyboard[i]=False
 
 def write_list(wait_write_list_a:list,write:str,i:int,ii=None,iii=None,iiii=None,fill=0):
     wait_write_list=wait_write_list_a
@@ -281,7 +283,8 @@ def debug_main():
         print_text_list(debug_text,wglGetCurrentDC(),debug_print_coordinates_text)
 def view_orientations(px,py,callback=None):
     #我还没有学过三角函数，因此如果输入负数也能正常使用，以下代码可以更加简洁。请帮忙改一改哈😀
-    if callback is not None: x,y=callback(px,py)
+    if callback is not None:
+        px,py=callback(px,py)
     if px>=0:
         if px>90:
             x=math.cos(px-90)
@@ -344,7 +347,8 @@ def spectator_mode(button):
     player_z+=z*player_move_speed
     glutPostRedisplay()
 def keyboarddown(button,x,y):
-    if button==b'\x1b':#是否开启鼠标控制
+    global keyboard
+    if not keyboard[b'\x1b'] and button==b'\x1b':#锁定或非锁定状态
         global lock_muose,mouse_fix_No1,window_width,window_long
         if lock_muose:
             lock_muose=False
@@ -355,20 +359,20 @@ def keyboarddown(button,x,y):
             mouse_fix_No1=1
             glutSetCursor(GLUT_CURSOR_NONE)
             glutPostRedisplay()
-    elif button in [b'w',b's',b'a',b'd']:
-        spectator_mode(button)
-    elif button==b'`':#调试模式
+    elif not keyboard[b'`'] and button==b'`':#调试模式
         global debug
         if debug:debug=False
         else:debug=True
         glutPostRedisplay()
     else:
         print(button)
+    keyboard[button]=True
 def keyboardup(button,x,y):
-    pass
+    global keyboard
+    keyboard[button]=False
 def mousemove(x,y):
     global lock_muose,mouse_fix_No1
-    if lock_muose and mouse_fix_No1==5:
+    if lock_muose and mouse_fix_No1==2:
         global mouse_move_speed,player_see_x,player_see_y,window_width,window_long
         player_see_x=(window_long-x)*mouse_move_speed+player_see_x
         player_see_y=(window_width-y)*mouse_move_speed+player_see_y
@@ -382,6 +386,10 @@ def mousemove(x,y):
         glutPostRedisplay()
         return 0
     mouse_fix_No1+=1
+def backgroud():
+    global keyboard
+    for i in [b'w',b's',b'a',b'd']:
+        if keyboard[i]:spectator_mode(i)
 def main():
     global window_width,window_long,debug_text,map,load_all_save
     #进行glut的最基础初始化
@@ -404,6 +412,7 @@ def main():
     glutKeyboardFunc(keyboarddown)
     glutKeyboardUpFunc(keyboardup)
     glutPassiveMotionFunc(mousemove)
+    glutIdleFunc(backgroud)
     #正式开始运行
     glutMainLoop()
 #代码看完了吗？帮忙提点建议吧！
