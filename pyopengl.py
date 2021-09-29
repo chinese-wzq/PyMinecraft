@@ -364,8 +364,6 @@ def keyboarddown(button,x,y):
         if debug:debug=False
         else:debug=True
         glutPostRedisplay()
-    else:
-        print(button)
     keyboard[button]=True
 def keyboardup(button,x,y):
     global keyboard
