@@ -2,8 +2,10 @@
 # Always believe,always hope。
 
 #感谢您的遇见！
-#本项目唯一地址（没有码云地址哦）：
+#本项目（PyMinecraft）GitHub地址：
 #https://github.com/yi-ge-shuai-qi-de-kai-fa-zhe/PyMinecraft
+#本项目（PyMinecraft）Gitee地址：
+#https://gitee.com/this_is_the_best_name/PyMinecraft
 #如果你发现有无良程序员大量盗用本程序代码并且未加声明的
 #欢迎你与他对线，并且将他的作品地址发给我（让我康康啊♂）
 #以下为程序声明以及一些介绍，如果有不符合规范的欢迎提出拉取请求，我不懂开源协议，太多了QAQ
@@ -66,7 +68,7 @@ window_long=400    #窗口的长与宽
 window_width=400
 saves_folder_dir="D:\\桌面\\PyMinecraft\\saves\\"   #指定了存储所有存档的文件夹的位置
 save_folder_dir="D:\\桌面\\PyMinecraft\\saves\\example\\"   #指定了存储单个存档的文件夹的位置
-load_all_save=True   #在启动时就加载所有的区块，并且不会执行卸载和加载的程序，降低程序卡顿
+load_all_save=True   #在启动时就加载所有的区块，并且不会执行卸载和加载的程序，可以减少程序卡顿，但在存档过大时需谨慎开启
 
 #用户不应该动的变量
 save_folder_files_list=os.listdir(save_folder_dir)
@@ -81,8 +83,7 @@ debug_text=[['XYZ:',0.0,',',0.0,',',0.0],
             ['EYE:',0,',',0],]
 block_size=11   #必须为单数
 buffer_block_size=15   #也必须为单数
-#区块加载的缓存变量
-temp1=block_size/2
+temp1=block_size/2#区块加载的缓存变量
 temp2=(buffer_block_size-1)/2
 temp7=(block_size-1)/-2
 
@@ -342,7 +343,7 @@ def spectator_mode(button):
     player_y+=y*player_move_speed
     player_z+=z*player_move_speed
     glutPostRedisplay()
-def keyboardchange(button,x,y):
+def keyboarddown(button,x,y):
     if button==b'\x1b':#是否开启鼠标控制
         global lock_muose,mouse_fix_No1,window_width,window_long
         if lock_muose:
@@ -363,6 +364,8 @@ def keyboardchange(button,x,y):
         glutPostRedisplay()
     else:
         print(button)
+def keyboardup(button,x,y):
+    pass
 def mousemove(x,y):
     global lock_muose,mouse_fix_No1
     if lock_muose and mouse_fix_No1==5:
@@ -398,7 +401,8 @@ def main():
     glEnable(GL_DEPTH_TEST)
     glDepthFunc(GL_LESS)
     glutDisplayFunc(draw)
-    glutKeyboardFunc(keyboardchange)
+    glutKeyboardFunc(keyboarddown)
+    glutKeyboardUpFunc(keyboardup)
     glutPassiveMotionFunc(mousemove)
     #正式开始运行
     glutMainLoop()
