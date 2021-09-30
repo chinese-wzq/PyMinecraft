@@ -37,24 +37,20 @@
 #################感谢与你相遇！###################
 
 #导入OpenGL相关库
-import copy
-
-import win32api
-import win32ui
 from OpenGL.GL import *
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
 #导入字体显示相关库
 from OpenGL.WGL import *
+import win32api,win32ui
 #导入三角函数相关库
 import math
 #导入窗口相关库
 import win32con,win32gui
 #导入区块读取相关库
-import json,os
+import json,os,copy
 
-#允许用户自定义的变量
-#已将大部分变量做好注释
+#允许用户自定义的变量,已将大部分变量做好注释
 mouse_move_speed=0.01 #鼠标移动距离
 player_move_speed=0.01
 look_length=15  #渲染距离,只支持不小于1的奇数
@@ -87,7 +83,8 @@ temp2=(buffer_block_size-1)/2
 temp7=(block_size-1)/-2
 keyboard={}
 for i in [b'\x1b',b'`',b'w',b's',b'a',b'd']:keyboard[i]=False
-
+input_text=True
+input_buffer=""
 def write_list(wait_write_list_a:list,write:str,i:int,ii=None,iii=None,iiii=None,fill=0):
     wait_write_list=wait_write_list_a
     if len(wait_write_list)<=i:
@@ -346,23 +343,29 @@ def spectator_mode(button):
     player_z+=z*player_move_speed
     glutPostRedisplay()
 def keyboarddown(button,x,y):
-    global keyboard
-    if not keyboard[b'\x1b'] and button==b'\x1b':#锁定或非锁定状态
-        global lock_muose,window_width,window_long
-        if lock_muose:
-            lock_muose=False
-            glutSetCursor(GLUT_CURSOR_LEFT_ARROW)
-        else:
-            glutWarpPointer(window_long,window_width)
-            lock_muose=True
-            glutSetCursor(GLUT_CURSOR_NONE)
+    global keyboard,input_text
+    if input_text:
+        global input_buffer
+        if button==b'\x08':input_buffer=input_buffer[:-1]
+        elif button==b'\x1b':input_text=False
+        else:input_buffer+=button.decode()
+    else:
+        if not keyboard[b'\x1b'] and button==b'\x1b':#锁定或非锁定状态
+            global lock_muose,window_width,window_long
+            if lock_muose:
+                lock_muose=False
+                glutSetCursor(GLUT_CURSOR_LEFT_ARROW)
+            else:
+                glutWarpPointer(window_long,window_width)
+                lock_muose=True
+                glutSetCursor(GLUT_CURSOR_NONE)
+                glutPostRedisplay()
+        elif not keyboard[b'`'] and button==b'`':#调试模式
+            global debug
+            if debug:debug=False
+            else:debug=True
             glutPostRedisplay()
-    elif not keyboard[b'`'] and button==b'`':#调试模式
-        global debug
-        if debug:debug=False
-        else:debug=True
-        glutPostRedisplay()
-    keyboard[button]=True
+        keyboard[button]=True
 def keyboardup(button,x,y):
     global keyboard
     keyboard[button]=False
