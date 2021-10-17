@@ -1,5 +1,5 @@
 # coding=utf-8
-# Always believe,always hope。
+# Always believe,always hope.
 
 #感谢您的遇见！
 #本项目（PyMinecraft）GitHub地址：
@@ -83,8 +83,9 @@ temp2=(buffer_block_size-1)/2
 temp7=(block_size-1)/-2
 keyboard={}
 for i in [b'\x1b',b'`',b'w',b's',b'a',b'd']:keyboard[i]=False
-input_text=True
+input_text=False
 input_buffer=""
+
 def write_list(wait_write_list_a:list,write:str,i:int,ii=None,iii=None,iiii=None,fill=0):
     wait_write_list=wait_write_list_a
     if len(wait_write_list)<=i:
@@ -217,14 +218,15 @@ def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，�
                     glVertex3f(x+0.5,y-0.5,z+0.5)#V6
                     glVertex3f(x-0.5,y-0.5,z+0.5)#V7
                     glEnd()
-def print_text_list(text:list,debug_hDC:int,callback=None,x=0,y=0):
+def print_text_list(text:list,callback=None,x=0,y=0,m=1):
     global font,window_width
+    debug_hDC=wglGetCurrentDC()
     font_hieght=30
     #设定文字的字体、颜色和背景
     win32gui.SelectObject(debug_hDC,win32ui.CreateFont({"height":font_hieght,"name":font}).GetSafeHandle())
     win32gui.SetBkMode(debug_hDC,win32con.TRANSPARENT)
     win32gui.SetTextColor(debug_hDC,win32api.RGB(250,0,0))
-    callback(debug_hDC)
+    if callback is not None:callback(debug_hDC)
     #开始显示（把连接和显示整到一起去了）
     glLoadIdentity()
     glTranslatef(-0.3,0.29,-0.1)#-0.1是为了防止文字被后面的物体遮挡！
@@ -236,7 +238,7 @@ def print_text_list(text:list,debug_hDC:int,callback=None,x=0,y=0):
             for iii in str(ii):
                 wglUseFontBitmapsW(debug_hDC,ord(iii),1,draw_text_list)
                 glCallList(draw_text_list)
-        qaq+=font_hieght/3000
+        qaq+=font_hieght/3000*m
     win32gui.DeleteObject(debug_hDC)
 def debug_print_coordinates_text(hDC):
     #显示坐标系文字（方便与MC原版进行矫正）
@@ -251,9 +253,8 @@ def debug_print_coordinates_text(hDC):
     wglUseFontBitmapsW(hDC,ord('z'),1,a)
     glCallList(a)
 def debug_main():
-    global debug
+    global debug,player_see_x,player_see_y,player_x,player_y,player_z,debug_text
     if debug:
-        global player_see_x,player_see_y,player_x,player_y,player_z,debug_text
         #显示一个世界原点的坐标系
         glBegin(GL_LINES)
         glColor3ub(0,0,255)
@@ -276,7 +277,7 @@ def debug_main():
         a[3]=round(player_see_y,2)
         debug_text[1]=a
         #调用文字显示函数显示debug内容，并顺便打印文字出来
-        print_text_list(debug_text,wglGetCurrentDC(),debug_print_coordinates_text)
+        print_text_list(debug_text,debug_print_coordinates_text)
 def view_orientations(px,py,callback=None):
     #我还没有学过三角函数，因此如果输入负数也能正常使用，以下代码可以更加简洁。请帮忙改一改哈😀
     if callback is not None:
@@ -301,7 +302,7 @@ def view_orientations(px,py,callback=None):
         y=math.sin(py*-1)*-1
     return x,y,z
 def draw():
-    global player_see_x,player_see_y,player_x,player_y,player_z
+    global player_see_x,player_see_y,player_x,player_y,player_z,input_buffer,input_text
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     glMatrixMode(GL_PROJECTION)
     glLoadIdentity()
@@ -322,6 +323,8 @@ def draw():
     print_blocks(player_x,player_y,player_z)
     #调试模式
     debug_main()
+    #显示指令栏
+    if input_text:print_text_list([input_buffer],y=0.585,m=-1)
     glutSwapBuffers()
 def walk_left(a,b):return a+1.57,b#1.57是实测出来的数据~
 def spectator_mode(button):
@@ -343,15 +346,17 @@ def spectator_mode(button):
     player_z+=z*player_move_speed
     glutPostRedisplay()
 def keyboarddown(button,x,y):
-    global keyboard,input_text
+    global keyboard,input_text,input_buffer,debug,lock_muose,window_width,window_long
     if input_text:
-        global input_buffer
-        if button==b'\x08':input_buffer=input_buffer[:-1]
-        elif button==b'\x1b':input_text=False
+        if button==b'\x1b':
+            input_text=False
+            input_buffer=""
+            return 0
+        elif button==b'\x08':input_buffer=input_buffer[:-1]
         else:input_buffer+=button.decode()
+        glutPostRedisplay()
     else:
         if not keyboard[b'\x1b'] and button==b'\x1b':#锁定或非锁定状态
-            global lock_muose,window_width,window_long
             if lock_muose:
                 lock_muose=False
                 glutSetCursor(GLUT_CURSOR_LEFT_ARROW)
@@ -361,19 +366,24 @@ def keyboarddown(button,x,y):
                 glutSetCursor(GLUT_CURSOR_NONE)
                 glutPostRedisplay()
         elif not keyboard[b'`'] and button==b'`':#调试模式
-            global debug
             if debug:debug=False
             else:debug=True
             glutPostRedisplay()
+        elif button==b'/':
+            input_text=True
+            input_buffer="/"
+            glutPostRedisplay()
+            return 0
+        elif button==b't':
+            input_text=True
+            return 0
         keyboard[button]=True
 def keyboardup(button,x,y):
     global keyboard
     keyboard[button]=False
 def mousemove(x,y):
-    global lock_muose,window_width,window_long
+    global lock_muose,window_width,window_long,mouse_move_speed,player_see_x,player_see_y
     if lock_muose and window_long!=x and window_width!=y:
-        print(x,y)
-        global mouse_move_speed,player_see_x,player_see_y
         player_see_x=(window_long-x)*mouse_move_speed+player_see_x
         player_see_y=(window_width-y)*mouse_move_speed+player_see_y
         #这里增加了数值限制，防止过头，因为是实测的数据，可能有不准，见谅~
