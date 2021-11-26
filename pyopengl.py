@@ -108,7 +108,6 @@ if load_all_save:
         a=int(a)
         b=int(b)
         with open(save_folder_dir+str(a)+','+str(b)) as f: map=write_list(map,json.load(f),a>=0,a+int(a<0),b>=0,b+int(b<0),[])
-#@profile
 def read_block(x:int,y:int,z:int):#此模块包装了读取方块的代码,未来可能也会把世界生成的代码放里边！
     #以下为基本原理：
     #1.先计算输入坐标位于的区块位置
@@ -164,8 +163,6 @@ def read_block(x:int,y:int,z:int):#此模块包装了读取方块的代码,未�
     #目标就是先求出区块中心，随后求出V3这个点的位置，最后换算坐标进入区块坐标系
     try:return map[temp3][temp4][temp5][temp6][int(x-temp7-block_X*block_size)][y][int(z-temp7-block_Z*block_size)]
     except IndexError:return 0
-# read_block(-5,0,-5)
-# read_block(-5,0,-4)
 def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，不会全部显示一遍，多伤显卡QAQ
     sx=int(sx)
     sz=int(sz)
@@ -348,10 +345,10 @@ def spectator_mode(button):
 def keyboarddown(button,x,y):
     global keyboard,input_text,input_buffer,debug,lock_muose,window_width,window_long
     if input_text:
-        if button==b'\x1b':
+        print(button)
+        if button==b'\x1b' or button==b'\r':
             input_text=False
             input_buffer=""
-            return 0
         elif button==b'\x08':input_buffer=input_buffer[:-1]
         else:input_buffer+=button.decode()
         glutPostRedisplay()
