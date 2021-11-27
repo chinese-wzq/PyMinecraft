@@ -85,7 +85,6 @@ keyboard={}
 for i in [b'\x1b',b'`',b'w',b's',b'a',b'd']:keyboard[i]=False
 input_text=False
 input_buffer=""
-
 def write_list(wait_write_list_a:list,write:str,i:int,ii=None,iii=None,iiii=None,fill=0):
     wait_write_list=wait_write_list_a
     if len(wait_write_list)<=i:
@@ -342,12 +341,14 @@ def spectator_mode(button):
     player_y+=y*player_move_speed
     player_z+=z*player_move_speed
     glutPostRedisplay()
+def run_command():#名义上叫做运行指令，实际上负责了聊天框输入事件处理的全部
+    pass
 def keyboarddown(button,x,y):
     global keyboard,input_text,input_buffer,debug,lock_muose,window_width,window_long
     if input_text:
-        print(button)
         if button==b'\x1b' or button==b'\r':
             input_text=False
+            run_command(input_buffer)
             input_buffer=""
         elif button==b'\x08':input_buffer=input_buffer[:-1]
         else:input_buffer+=button.decode()
