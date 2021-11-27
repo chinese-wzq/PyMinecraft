@@ -62,6 +62,7 @@ player_z=-1
 font="Microsoft YaHei UI"    #显示文字时使用的字体
 window_long=400    #窗口的长与宽
 window_width=400
+set_chat_list_show_time=50      #聊天框显示多久，2/3时间不变，1/3时间淡化消失
 saves_folder_dir="D:\\桌面\\PyMinecraft\\saves\\"   #指定了存储所有存档的文件夹的位置
 save_folder_dir="D:\\桌面\\PyMinecraft\\saves\\example\\"   #指定了存储单个存档的文件夹的位置
 load_all_save=True   #在启动时就加载所有的区块，并且不会执行卸载和加载的程序，可以减少程序卡顿，但在存档过大时需谨慎开启
@@ -85,6 +86,9 @@ keyboard={}
 for i in [b'\x1b',b'`',b'w',b's',b'a',b'd']:keyboard[i]=False
 input_text=False
 input_buffer=""
+chat_list=[]
+chat_list_show_time=0
+
 def write_list(wait_write_list_a:list,write:str,i:int,ii=None,iii=None,iiii=None,fill=0):
     wait_write_list=wait_write_list_a
     if len(wait_write_list)<=i:
@@ -214,14 +218,14 @@ def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，�
                     glVertex3f(x+0.5,y-0.5,z+0.5)#V6
                     glVertex3f(x-0.5,y-0.5,z+0.5)#V7
                     glEnd()
-def print_text_list(text:list,callback=None,x=0,y=0,m=1):
+def print_text_list(text:list,callback=None,x=0,y=0,m=1,color=(250,255,255)):#TODO:以后别忘了把这个颜色改掉，换个更好看的
     global font,window_width
     debug_hDC=wglGetCurrentDC()
     font_hieght=30
     #设定文字的字体、颜色和背景
     win32gui.SelectObject(debug_hDC,win32ui.CreateFont({"height":font_hieght,"name":font}).GetSafeHandle())
     win32gui.SetBkMode(debug_hDC,win32con.TRANSPARENT)
-    win32gui.SetTextColor(debug_hDC,win32api.RGB(250,0,0))
+    glColor3ub(color[0],color[1],color[2])
     if callback is not None:callback(debug_hDC)
     #开始显示（把连接和显示整到一起去了）
     glLoadIdentity()
@@ -298,7 +302,7 @@ def view_orientations(px,py,callback=None):
         y=math.sin(py*-1)*-1
     return x,y,z
 def draw():
-    global player_see_x,player_see_y,player_x,player_y,player_z,input_buffer,input_text
+    global player_see_x,player_see_y,player_x,player_y,player_z,input_buffer,input_text,chat_list_show_time
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     glMatrixMode(GL_PROJECTION)
     glLoadIdentity()
@@ -319,8 +323,14 @@ def draw():
     print_blocks(player_x,player_y,player_z)
     #调试模式
     debug_main()
+    if chat_list_show_time!=0 and not input_text:
+        chat_list_show_time-=1
+        if set_chat_list_show_time/3*1<chat_list_show_time:print_text_list([input_buffer]+chat_list,y=0.585,m=-1)
+        else:
+            a=int(255/(set_chat_list_show_time/3*1)*(set_chat_list_show_time/3*1-(set_chat_list_show_time/3*1)+chat_list_show_time))
+            print_text_list([input_buffer]+chat_list,y=0.585,m=-1,color=(a,a,a))
     #显示指令栏
-    if input_text:print_text_list([input_buffer],y=0.585,m=-1)
+    if input_text:print_text_list([input_buffer]+chat_list,y=0.585,m=-1)
     glutSwapBuffers()
 def walk_left(a,b):return a+1.57,b#1.57是实测出来的数据~
 def spectator_mode(button):
@@ -341,8 +351,20 @@ def spectator_mode(button):
     player_y+=y*player_move_speed
     player_z+=z*player_move_speed
     glutPostRedisplay()
-def run_command():#名义上叫做运行指令，实际上负责了聊天框输入事件处理的全部
-    pass
+def run_command(command):#名义上叫做运行指令，实际上负责了聊天框输入事件处理的全部
+    global chat_list,chat_list_show_time
+    chat_list=[input_buffer]+chat_list
+    chat_list_show_time=set_chat_list_show_time
+def lock_or_unlock_mouse(a):
+    global lock_muose
+    if a:
+        lock_muose=False
+        glutSetCursor(GLUT_CURSOR_LEFT_ARROW)
+    else:
+        glutWarpPointer(window_long,window_width)
+        lock_muose=True
+        glutSetCursor(GLUT_CURSOR_NONE)
+        glutPostRedisplay()
 def keyboarddown(button,x,y):
     global keyboard,input_text,input_buffer,debug,lock_muose,window_width,window_long
     if input_text:
@@ -350,30 +372,26 @@ def keyboarddown(button,x,y):
             input_text=False
             run_command(input_buffer)
             input_buffer=""
+            lock_or_unlock_mouse(False)
         elif button==b'\x08':input_buffer=input_buffer[:-1]
         else:input_buffer+=button.decode()
         glutPostRedisplay()
     else:
-        if not keyboard[b'\x1b'] and button==b'\x1b':#锁定或非锁定状态
-            if lock_muose:
-                lock_muose=False
-                glutSetCursor(GLUT_CURSOR_LEFT_ARROW)
-            else:
-                glutWarpPointer(window_long,window_width)
-                lock_muose=True
-                glutSetCursor(GLUT_CURSOR_NONE)
-                glutPostRedisplay()
+        if not keyboard[b'\x1b'] and button==b'\x1b':lock_or_unlock_mouse(lock_muose)#锁定或非锁定状态
         elif not keyboard[b'`'] and button==b'`':#调试模式
             if debug:debug=False
             else:debug=True
             glutPostRedisplay()
         elif button==b'/':
             input_text=True
+            lock_or_unlock_mouse(True)
             input_buffer="/"
             glutPostRedisplay()
             return 0
         elif button==b't':
             input_text=True
+            lock_or_unlock_mouse(True)
+            glutSetCursor(GLUT_CURSOR_LEFT_ARROW)
             return 0
         keyboard[button]=True
 def keyboardup(button,x,y):
@@ -392,9 +410,12 @@ def mousemove(x,y):
         glutWarpPointer(window_long,window_width)
         glutPostRedisplay()
 def backgroud():
-    global keyboard
+    global keyboard,chat_list_show_time
+    #键盘
     for i in [b'w',b's',b'a',b'd']:
         if keyboard[i]:spectator_mode(i)
+    #聊天框淡化事件，必须要激活
+    if chat_list_show_time!=0 and not input_text:glutPostRedisplay()
 def main():
     global window_width,window_long,debug_text,map,load_all_save
     #进行glut的最基础初始化
