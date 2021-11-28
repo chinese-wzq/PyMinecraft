@@ -89,28 +89,25 @@ input_buffer=""
 chat_list=[]
 chat_list_show_time=0
 
-def write_list(wait_write_list_a:list,write:str,i:int,ii=None,iii=None,iiii=None,fill=0):
-    wait_write_list=wait_write_list_a
-    if len(wait_write_list)<=i:
-        while len(wait_write_list)<=i:wait_write_list.append(copy.copy(fill))#卧槽内存机制太TM坑爹了
-    if len(wait_write_list[i])<=ii:
-        while len(wait_write_list[i])<=ii:wait_write_list[i].append(copy.copy(fill))
-    if len(wait_write_list[i][ii])<=iii:
-        while len(wait_write_list[i][ii])<=iii: wait_write_list[i][ii].append(copy.copy(fill))
-    if len(wait_write_list[i][ii][iii])<=iiii:
-        while len(wait_write_list[i][ii][iii])<=iiii: wait_write_list[i][ii][iii].append(copy.copy(fill))
-    if ii is None:wait_write_list[i]=write
-    elif iii is None: wait_write_list[i][ii]=write
-    elif iiii is None: wait_write_list[i][ii][iii]=write
-    else:wait_write_list[i][ii][iii][iiii]=write
-    return wait_write_list
+def write_list(wait_write_list:list,write:str,point:list,fill=0,fill_callback=None):#代码再不重写就TM要爆炸了
+    print(point)
+    really_point=wait_write_list
+    for i in range(len(point)):
+        while point[i]>=len(really_point)-1:
+            if fill_callback is None:really_point.append(copy.copy(fill))
+            else:really_point.append(fill_callback(i,point))
+        print(really_point)
+        if i==len(point)-1:
+            really_point[point[i]]=write
+            return wait_write_list
+        really_point=really_point[point[i]]
 #如果设置为加载全部区块，则进行一些操作
 if load_all_save:
     for i in save_folder_files_list:
         a,b=i.split(",")
         a=int(a)
         b=int(b)
-        with open(save_folder_dir+str(a)+','+str(b)) as f: map=write_list(map,json.load(f),a>=0,a+int(a<0),b>=0,b+int(b<0),[])
+        with open(save_folder_dir+str(a)+','+str(b)) as f: map=write_list(map,json.load(f),[a>=0,a+int(a<0),b>=0,b+int(b<0)],fill=[])
 def read_block(x:int,y:int,z:int):#此模块包装了读取方块的代码,未来可能也会把世界生成的代码放里边！
     #以下为基本原理：
     #1.先计算输入坐标位于的区块位置
@@ -124,7 +121,7 @@ def read_block(x:int,y:int,z:int):#此模块包装了读取方块的代码,未�
     #                              第一层：Y
     #                              第二层：X
     #                              第二层：Z
-    global map,block_size,buffer_block_size,save_folder_dir,save_folder_files_list,load_all_save,temp1,temp2,temp7
+    global map
     #第一步
     if int(x/temp1)==0:block_X=0
     elif x<0:block_X=math.ceil((x+temp1)/block_size)
@@ -152,7 +149,7 @@ def read_block(x:int,y:int,z:int):#此模块包装了读取方块的代码,未�
             if not map[temp3][temp4][temp5][temp6]:raise IndexError
         except IndexError:
             if str(block_X)+','+str(block_Z) in save_folder_files_list:
-                with open(save_folder_dir+str(block_X)+','+str(block_Z)) as a:map=write_list(map,json.load(a),temp3,temp4,temp5,temp6,[])
+                with open(save_folder_dir+str(block_X)+','+str(block_Z)) as a:map=write_list(map,json.load(a),[temp3,temp4,temp5,temp6],[])
             else:
                 return 0
     #第三步
@@ -166,6 +163,23 @@ def read_block(x:int,y:int,z:int):#此模块包装了读取方块的代码,未�
     #目标就是先求出区块中心，随后求出V3这个点的位置，最后换算坐标进入区块坐标系
     try:return map[temp3][temp4][temp5][temp6][int(x-temp7-block_X*block_size)][y][int(z-temp7-block_Z*block_size)]
     except IndexError:return 0
+def write_block_fill_callback(a,b):
+    if a==len(b)-1:return 0
+    else:return []
+def write_block(x:int,y:int,z:int,write:int):
+    global map
+    #第一步
+    if int(x/temp1)==0:block_X=0
+    elif x<0:block_X=math.ceil((x+temp1)/block_size)
+    else:block_X=math.ceil((x-temp1)/block_size)
+    if int(z/temp1)==0:block_Z=0
+    elif z<0:block_Z=math.ceil((z+temp1)/block_size)
+    else:block_Z=math.ceil((z-temp1)/block_size)
+    temp3=block_X>=0
+    temp4=block_X+int(block_X<0)
+    temp5=block_Z>=0
+    temp6=block_Z+int(block_Z<0)
+    map=write_list(map,write,[temp3,temp4,temp5,temp6,int(x-temp7-block_X*block_size),y,int(z-temp7-block_Z*block_size)],fill_callback=write_block_fill_callback)
 def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，不会全部显示一遍，多伤显卡QAQ
     sx=int(sx)
     sz=int(sz)
@@ -353,6 +367,11 @@ def spectator_mode(button):
     glutPostRedisplay()
 def run_command(command):#名义上叫做运行指令，实际上负责了聊天框输入事件处理的全部
     global chat_list,chat_list_show_time
+    if command[0]=="/":
+        #对输入进行拆分
+        command_split=command[1:].split(' ')
+        if command_split[0]=="fill":
+            write_block(int(command_split[1]),int(command_split[2]),int(command_split[3]),int(command_split[4]))
     chat_list=[input_buffer]+chat_list
     chat_list_show_time=set_chat_list_show_time
 def lock_or_unlock_mouse(a):
