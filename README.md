@@ -17,9 +17,14 @@
 # 使用教程：
 
 1. 安装依赖库
+   本项目所需依赖库:
+      1.PyOpenGL
+       (如果无法运行可能需要手动安装正确位数的版本)
 
-    在目录下运行"pip install -r requirement.txt"，将会自动安装所需的依赖库（PyOpenGL库需手动安装正确位数的版本，Python版本为3.9）
-  
+      2.pywin32
+
+   你可以通过在命令行中运行"pip install PyOpenGL pywin32"来自动安装
+
 2. 运行主程序
 
     运行"main.py"即可。
