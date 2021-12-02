@@ -3,7 +3,7 @@
 
 #感谢您的遇见！
 #本项目（PyMinecraft）GitHub地址：
-#https://github.com/yi-ge-shuai-qi-de-kai-fa-zhe/PyMinecraft
+#https://github.com/chinese-wzq/PyMinecraft
 #本项目（PyMinecraft）Gitee地址：
 #https://gitee.com/this_is_the_best_name/PyMinecraft
 #如果你发现有无良程序员大量盗用本程序代码并且未加声明的
@@ -42,7 +42,7 @@ from OpenGL.GLUT import *
 from OpenGL.GLU import *
 #导入字体显示相关库
 from OpenGL.WGL import *
-import win32api,win32ui
+import win32ui
 #导入三角函数相关库
 import math
 #导入窗口相关库
@@ -88,15 +88,13 @@ input_text=False
 input_buffer=""
 chat_list=[]
 chat_list_show_time=0
-
+def float2int(i):return int(str(i).split(".")[0])
 def write_list(wait_write_list:list,write:str,point:list,fill=0,fill_callback=None):#代码再不重写就TM要爆炸了
-    print(point)
     really_point=wait_write_list
     for i in range(len(point)):
-        while point[i]>=len(really_point)-1:
+        while point[i]>len(really_point)-1:
             if fill_callback is None:really_point.append(copy.copy(fill))
             else:really_point.append(fill_callback(i,point))
-        print(really_point)
         if i==len(point)-1:
             really_point[point[i]]=write
             return wait_write_list
@@ -123,12 +121,12 @@ def read_block(x:int,y:int,z:int):#此模块包装了读取方块的代码,未�
     #                              第二层：Z
     global map
     #第一步
-    if int(x/temp1)==0:block_X=0
-    elif x<0:block_X=math.ceil((x+temp1)/block_size)
-    else:block_X=math.ceil((x-temp1)/block_size)
-    if int(z/temp1)==0:block_Z=0
-    elif z<0:block_Z=math.ceil((z+temp1)/block_size)
-    else:block_Z=math.ceil((z-temp1)/block_size)
+    i=1
+    ii=1
+    if x<0:i=-1
+    if z<0:ii=-1
+    block_X=float2int((x+temp1*i)/block_size)
+    block_Z=float2int((z+temp1*ii)/block_size)
     #第二步，这里决定先卸载再载入
     temp3=block_X>=0
     temp4=block_X+int(block_X<0)
@@ -161,7 +159,10 @@ def read_block(x:int,y:int,z:int):#此模块包装了读取方块的代码,未�
     #  |/      |/
     #  v3------v2→
     #目标就是先求出区块中心，随后求出V3这个点的位置，最后换算坐标进入区块坐标系
-    try:return map[temp3][temp4][temp5][temp6][int(x-temp7-block_X*block_size)][y][int(z-temp7-block_Z*block_size)]
+    center_block_x=(block_X-0.5)*block_size
+    center_block_z=(block_Z-0.5)*block_size
+    #print(x,z,block_X,block_Z)
+    try:return map[temp3][temp4][temp5][temp6][y][int(x-center_block_x)][int(z-center_block_z)]
     except IndexError:return 0
 def write_block_fill_callback(a,b):
     if a==len(b)-1:return 0
@@ -169,17 +170,20 @@ def write_block_fill_callback(a,b):
 def write_block(x:int,y:int,z:int,write:int):
     global map
     #第一步
-    if int(x/temp1)==0:block_X=0
-    elif x<0:block_X=math.ceil((x+temp1)/block_size)
-    else:block_X=math.ceil((x-temp1)/block_size)
-    if int(z/temp1)==0:block_Z=0
-    elif z<0:block_Z=math.ceil((z+temp1)/block_size)
-    else:block_Z=math.ceil((z-temp1)/block_size)
+    i=1
+    ii=1
+    if x<0:i=-1
+    if z<0:ii=-1
+    block_X=float2int((x+temp1*i)/block_size)
+    block_Z=float2int((z+temp1*ii)/block_size)
     temp3=block_X>=0
     temp4=block_X+int(block_X<0)
     temp5=block_Z>=0
     temp6=block_Z+int(block_Z<0)
-    map=write_list(map,write,[temp3,temp4,temp5,temp6,int(x-temp7-block_X*block_size),y,int(z-temp7-block_Z*block_size)],fill_callback=write_block_fill_callback)
+    center_block_x=(block_X-0.5)*block_size
+    center_block_z=(block_Z-0.5)*block_size
+    if int(round(x-center_block_x,0))<0:print(x,block_X,(z+temp1*ii)/block_size)
+    map=write_list(map,write,[temp3,temp4,temp5,temp6,float2int(x-center_block_x),y,float2int(z-center_block_z)],fill_callback=write_block_fill_callback)
 def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，不会全部显示一遍，多伤显卡QAQ
     sx=int(sx)
     sz=int(sz)
@@ -372,6 +376,11 @@ def run_command(command):#名义上叫做运行指令，实际上负责了聊天
         command_split=command[1:].split(' ')
         if command_split[0]=="fill":
             write_block(int(command_split[1]),int(command_split[2]),int(command_split[3]),int(command_split[4]))
+        if command_split[0]=="tp":
+            global player_x,player_y,player_z
+            player_x=float(command_split[1])
+            player_y=float(command_split[2])
+            player_z=float(command_split[3])
     chat_list=[input_buffer]+chat_list
     chat_list_show_time=set_chat_list_show_time
 def lock_or_unlock_mouse(a):
