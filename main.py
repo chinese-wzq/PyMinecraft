@@ -161,8 +161,7 @@ def read_block(x:int,y:int,z:int):#此模块包装了读取方块的代码,未�
     #目标就是先求出区块中心，随后求出V3这个点的位置，最后换算坐标进入区块坐标系
     center_block_x=(block_X-0.5)*block_size
     center_block_z=(block_Z-0.5)*block_size
-    #print(x,z,block_X,block_Z)
-    try:return map[temp3][temp4][temp5][temp6][y][int(x-center_block_x)][int(z-center_block_z)]
+    try:return map[temp3][temp4][temp5][temp6][y][float2int(x-center_block_x)][float2int(z-center_block_z)]
     except IndexError:return 0
 def write_block_fill_callback(a,b):
     if a==len(b)-1:return 0
@@ -182,16 +181,11 @@ def write_block(x:int,y:int,z:int,write:int):
     temp6=block_Z+int(block_Z<0)
     center_block_x=(block_X-0.5)*block_size
     center_block_z=(block_Z-0.5)*block_size
-    if int(round(x-center_block_x,0))<0:print(x,block_X,(z+temp1*ii)/block_size)
-    map=write_list(map,write,[temp3,temp4,temp5,temp6,float2int(x-center_block_x),y,float2int(z-center_block_z)],fill_callback=write_block_fill_callback)
+    map=write_list(map,write,[temp3,temp4,temp5,temp6,y,float2int(x-center_block_x),float2int(z-center_block_z)],fill_callback=write_block_fill_callback)
 def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，不会全部显示一遍，多伤显卡QAQ
-    sx=int(sx)
-    sz=int(sz)
-    global look_length,highest_y,lowest_y,block_color
-    by_13905069=(sx-int((look_length-1)/2),sz+int((look_length-1)/2)+1)
-    for x in range(by_13905069[0],by_13905069[1]):
+    for x in range(sx-int((look_length-1)/2),sx+int((look_length-1)/2)+1):
         for y in range(lowest_y,highest_y+1):
-            for z in range(by_13905069[0],by_13905069[1]):
+            for z in range(sz-int((look_length-1)/2),sz+int((look_length-1)/2)+1):
                 by_wzq=read_block(x,y,z)
                 if not by_wzq==0:
                     #图盗的
@@ -338,7 +332,7 @@ def draw():
         0,1,0
     )
     #渲染方块
-    print_blocks(player_x,player_y,player_z)
+    print_blocks(int(player_x),int(player_y),int(player_z))
     #调试模式
     debug_main()
     if chat_list_show_time!=0 and not input_text:
@@ -374,8 +368,10 @@ def run_command(command):#名义上叫做运行指令，实际上负责了聊天
     if command[0]=="/":
         #对输入进行拆分
         command_split=command[1:].split(' ')
+        print(command_split)
         if command_split[0]=="fill":
-            write_block(int(command_split[1]),int(command_split[2]),int(command_split[3]),int(command_split[4]))
+            for i in range(10):
+                write_block(int(command_split[1])+i,int(command_split[2]),int(command_split[3]),int(command_split[4]))
         if command_split[0]=="tp":
             global player_x,player_y,player_z
             player_x=float(command_split[1])
