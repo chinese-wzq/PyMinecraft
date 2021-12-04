@@ -65,7 +65,7 @@ window_width=400
 set_chat_list_show_time=50      #聊天框显示多久，2/3时间不变，1/3时间淡化消失
 saves_folder_dir="D:\\桌面\\PyMinecraft\\saves\\"   #指定了存储所有存档的文件夹的位置
 save_folder_dir="D:\\桌面\\PyMinecraft\\saves\\example\\"   #指定了存储单个存档的文件夹的位置
-load_all_save=True   #在启动时就加载所有的区块，并且不会执行卸载和加载的程序，可以减少程序卡顿，但在存档过大时需谨慎开启
+load_all_save=False   #在启动时就加载所有的区块，并且不会执行卸载和加载的程序，可以减少程序卡顿，但在存档过大时需谨慎开启
 
 #用户不应该动的变量
 save_folder_files_list=os.listdir(save_folder_dir)
@@ -88,6 +88,7 @@ input_text=False
 input_buffer=""
 chat_list=[]
 chat_list_show_time=0
+global_status="guide"
 def float2int(i):return int(str(i).split(".")[0])
 def write_list(wait_write_list:list,write:str,point:list,fill=0,fill_callback=None):#代码再不重写就TM要爆炸了
     really_point=wait_write_list
@@ -142,6 +143,7 @@ def read_block(x:int,y:int,z:int):#此模块包装了读取方块的代码,未�
                         if iii>0:aa=iiii
                         else:aa=iiii*-1-1
                         if not block_X-temp2<=a<=block_X+temp2 or not block_Z-temp2<=aa<=block_Z+temp2:
+                            with open(save_folder_dir+str(a)+","+str(aa),"w") as f:json.dump(map[i][ii][iii][iiii],f)
                             map[i][ii][iii][iiii]=0
         try:
             if not map[temp3][temp4][temp5][temp6]:raise IndexError
@@ -313,8 +315,8 @@ def view_orientations(px,py,callback=None):
     else:
         y=math.sin(py*-1)*-1
     return x,y,z
-def draw():
-    global player_see_x,player_see_y,player_x,player_y,player_z,input_buffer,input_text,chat_list_show_time
+def world_main_loop():
+    global input_text,chat_list_show_time
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     glMatrixMode(GL_PROJECTION)
     glLoadIdentity()
@@ -346,7 +348,7 @@ def draw():
     glutSwapBuffers()
 def walk_left(a,b):return a+1.57,b#1.57是实测出来的数据~
 def spectator_mode(button):
-    global player_see_x,player_see_y,player_x,player_y,player_z,player_move_speed
+    global player_x,player_y,player_z
     if button in [b'w',b's']:
         x,y,z=view_orientations(player_see_x,player_see_y)
         if button==b's':
@@ -368,7 +370,6 @@ def run_command(command):#名义上叫做运行指令，实际上负责了聊天
     if command[0]=="/":
         #对输入进行拆分
         command_split=command[1:].split(' ')
-        print(command_split)
         if command_split[0]=="fill":
             for i in range(10):
                 write_block(int(command_split[1])+i,int(command_split[2]),int(command_split[3]),int(command_split[4]))
@@ -390,7 +391,7 @@ def lock_or_unlock_mouse(a):
         glutSetCursor(GLUT_CURSOR_NONE)
         glutPostRedisplay()
 def keyboarddown(button,x,y):
-    global keyboard,input_text,input_buffer,debug,lock_muose,window_width,window_long
+    global keyboard,input_text,input_buffer,debug,lock_muose
     if input_text:
         if button==b'\x1b' or button==b'\r':
             input_text=False
@@ -421,8 +422,8 @@ def keyboarddown(button,x,y):
 def keyboardup(button,x,y):
     global keyboard
     keyboard[button]=False
-def mousemove(x,y):
-    global lock_muose,window_width,window_long,mouse_move_speed,player_see_x,player_see_y
+def world_mousemove(x,y):
+    global player_see_x,player_see_y
     if lock_muose and window_long!=x and window_width!=y:
         player_see_x=(window_long-x)*mouse_move_speed+player_see_x
         player_see_y=(window_width-y)*mouse_move_speed+player_see_y
@@ -434,36 +435,47 @@ def mousemove(x,y):
         glutWarpPointer(window_long,window_width)
         glutPostRedisplay()
 def backgroud():
-    global keyboard,chat_list_show_time
+    global keyboard
     #键盘
     for i in [b'w',b's',b'a',b'd']:
         if keyboard[i]:spectator_mode(i)
     #聊天框淡化事件，必须要激活
     if chat_list_show_time!=0 and not input_text:glutPostRedisplay()
-def main():
-    global window_width,window_long,debug_text,map,load_all_save
+def ThreeToTwo():
+    glLoadMatrixd(init_info[0])
+    glMatrixMode(GL_MODELVIEW)
+    glLoadMatrixd(init_info[1])
+    glMatrixMode(GL_PROJECTION)
+    glLoadMatrixd(init_info[2])
+def guide_init():#处理情况：游戏退出到主界面，其他界面退出到主界面
+    glutSetCursor(GLUT_CURSOR_LEFT_ARROW)
+    glutIdleFunc(nothing)
+    glutPassiveMotionFunc(nothing)
+def go_to_world():
+    glutDisplayFunc(world_main_loop)
+    glutIdleFunc(backgroud)
+    glutPassiveMotionFunc(world_mousemove)
+def nothing(*args):pass
+def init():
     #进行glut的最基础初始化
     glutInit()
-    glutInitDisplayMode(GLUT_DOUBLE | GLUT_ALPHA | GLUT_DEPTH)
+    glutInitDisplayMode(GLUT_DOUBLE|GLUT_ALPHA|GLUT_DEPTH)
     glutCreateWindow("Minecraft 重置版 ByWzq".encode('GBK',errors="replace"))
-    glutSetCursor(GLUT_CURSOR_NONE)
     #使用户无法更改窗口大小
     hwnd=win32gui.GetForegroundWindow()
     A=win32gui.GetWindowLong(hwnd,win32con.GWL_STYLE)
-    A ^=win32con.WS_THICKFRAME
+    A^=win32con.WS_THICKFRAME
     win32gui.SetWindowLong(hwnd,win32con.GWL_STYLE,A)
     #完成其余的初始化
     glutReshapeWindow(window_long*2,window_width*2)
     glViewport(0,0,window_long*2,window_width*2)
-    glClearColor(0.0, 0.0, 0.0, 0.0)
-    glEnable(GL_DEPTH_TEST)
-    glDepthFunc(GL_LESS)
-    glutDisplayFunc(draw)
-    glutKeyboardFunc(keyboarddown)
-    glutKeyboardUpFunc(keyboardup)
-    glutPassiveMotionFunc(mousemove)
-    glutIdleFunc(backgroud)
-    #正式开始运行
-    glutMainLoop()
-#代码看完了吗？帮忙提点建议吧！
-main()
+    glClearColor(0.0,0.0,0.0,0.0)
+init()
+glutSetCursor(GLUT_CURSOR_NONE)
+glEnable(GL_DEPTH_TEST)
+glDepthFunc(GL_LESS)
+glutKeyboardFunc(keyboarddown)
+glutKeyboardUpFunc(keyboardup)
+init_info=(glGetIntegerv(GL_VIEWPORT),glGetDoublev(GL_MODELVIEW_MATRIX),glGetDoublev(GL_PROJECTION_MATRIX))
+go_to_world()
+glutMainLoop()#正式开始运行
