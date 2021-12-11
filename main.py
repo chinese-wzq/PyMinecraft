@@ -88,7 +88,7 @@ input_text=False
 input_buffer=""
 chat_list=[]
 chat_list_show_time=0
-global_status="guide"
+guide_buttons=[]
 def float2int(i):return int(str(i).split(".")[0])
 def write_list(wait_write_list:list,write:str,point:list,fill=0,fill_callback=None):#代码再不重写就TM要爆炸了
     really_point=wait_write_list
@@ -441,17 +441,25 @@ def backgroud():
         if keyboard[i]:spectator_mode(i)
     #聊天框淡化事件，必须要激活
     if chat_list_show_time!=0 and not input_text:glutPostRedisplay()
-def ThreeToTwo():
-    glLoadMatrixd(init_info[0])
-    glMatrixMode(GL_MODELVIEW)
-    glLoadMatrixd(init_info[1])
-    glMatrixMode(GL_PROJECTION)
-    glLoadMatrixd(init_info[2])
+def guide_button_event_init():
+    global guide_buttons
+    guide_buttons=[]
+def guide_main_loop():
+    glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
+    glColor3f(1.0,0.0,0.0)
+    glRectf(-0.5,-0.5,0.5,0.5)
+    glutSwapBuffers()
 def guide_init():#处理情况：游戏退出到主界面，其他界面退出到主界面
     glutSetCursor(GLUT_CURSOR_LEFT_ARROW)
     glutIdleFunc(nothing)
     glutPassiveMotionFunc(nothing)
+    glMatrixMode(GL_MODELVIEW)
+    glLoadMatrixd(init_info[0])
+    glMatrixMode(GL_PROJECTION)
+    glLoadMatrixd(init_info[1])
+    glutDisplayFunc(guide_main_loop)
 def go_to_world():
+    glutSetCursor(GLUT_CURSOR_NONE)
     glutDisplayFunc(world_main_loop)
     glutIdleFunc(backgroud)
     glutPassiveMotionFunc(world_mousemove)
@@ -460,7 +468,7 @@ def init():
     #进行glut的最基础初始化
     glutInit()
     glutInitDisplayMode(GLUT_DOUBLE|GLUT_ALPHA|GLUT_DEPTH)
-    glutCreateWindow("Minecraft 重置版 ByWzq".encode('GBK',errors="replace"))
+    glutCreateWindow("PyMinecraft ByWzq".encode('GBK',errors="replace"))
     #使用户无法更改窗口大小
     hwnd=win32gui.GetForegroundWindow()
     A=win32gui.GetWindowLong(hwnd,win32con.GWL_STYLE)
@@ -471,11 +479,10 @@ def init():
     glViewport(0,0,window_long*2,window_width*2)
     glClearColor(0.0,0.0,0.0,0.0)
 init()
-glutSetCursor(GLUT_CURSOR_NONE)
 glEnable(GL_DEPTH_TEST)
 glDepthFunc(GL_LESS)
 glutKeyboardFunc(keyboarddown)
 glutKeyboardUpFunc(keyboardup)
-init_info=(glGetIntegerv(GL_VIEWPORT),glGetDoublev(GL_MODELVIEW_MATRIX),glGetDoublev(GL_PROJECTION_MATRIX))
-go_to_world()
+init_info=(glGetDoublev(GL_MODELVIEW_MATRIX),glGetDoublev(GL_PROJECTION_MATRIX))
+guide_init()
 glutMainLoop()#正式开始运行
