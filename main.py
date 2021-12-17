@@ -37,6 +37,7 @@
 #################感谢与你相遇！###################
 
 #导入OpenGL相关库
+import numpy
 from OpenGL.GL import *
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
@@ -184,54 +185,98 @@ def write_block(x:int,y:int,z:int,write:int):
     center_block_x=(block_X-0.5)*block_size
     center_block_z=(block_Z-0.5)*block_size
     map=write_list(map,write,[temp3,temp4,temp5,temp6,y,float2int(x-center_block_x),float2int(z-center_block_z)],fill_callback=write_block_fill_callback)
+draw=False
+block_VBO=0
+block_EBO=0
+block_VAO=0
+block_EBO_buffer_len=0
 def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，不会全部显示一遍，多伤显卡QAQ
-    for x in range(sx-int((look_length-1)/2),sx+int((look_length-1)/2)+1):
-        for y in range(lowest_y,highest_y+1):
-            for z in range(sz-int((look_length-1)/2),sz+int((look_length-1)/2)+1):
-                by_wzq=read_block(x,y,z)
-                if not by_wzq==0:
-                    #图盗的
-                    #    v4----- v5
-                    #   /|      /|
-                    #  v0------v1|
-                    #  | |     | |
-                    #  | v7----|-v6
-                    #  |/      |/
-                    #  v3------v2
-                    color=block_color[by_wzq-1]
-                    glBegin(GL_QUADS)#使用GL_QUADS是为了以后的遮挡更新做准备
-                    glColor3ub(color[0],color[1],color[2])
-                    #上
-                    glVertex3f(x-0.5,y+0.5,z-0.5)#V0
-                    glVertex3f(x+0.5,y+0.5,z-0.5)#V1
-                    glVertex3f(x+0.5,y+0.5,z+0.5)#V5
-                    glVertex3f(x-0.5,y+0.5,z+0.5)#V4
-                    #下
-                    glVertex3f(x-0.5,y-0.5,z-0.5)#V3
-                    glVertex3f(x+0.5,y-0.5,z-0.5)#V2
-                    glVertex3f(x+0.5,y-0.5,z+0.5)#V6
-                    glVertex3f(x-0.5,y-0.5,z+0.5)#V7
-                    #左
-                    glVertex3f(x-0.5,y+0.5,z-0.5)#V0
-                    glVertex3f(x-0.5,y-0.5,z-0.5)#V3
-                    glVertex3f(x-0.5,y-0.5,z+0.5)#V7
-                    glVertex3f(x-0.5,y+0.5,z+0.5)#V4
-                    #右
-                    glVertex3f(x+0.5,y+0.5,z-0.5)#V1
-                    glVertex3f(x+0.5,y-0.5,z-0.5)#V2
-                    glVertex3f(x+0.5,y-0.5,z+0.5)#V6
-                    glVertex3f(x+0.5,y+0.5,z+0.5)#V5
-                    #前
-                    glVertex3f(x-0.5,y+0.5,z-0.5)#V0
-                    glVertex3f(x+0.5,y+0.5,z-0.5)#V1
-                    glVertex3f(x+0.5,y-0.5,z-0.5)#V2
-                    glVertex3f(x-0.5,y-0.5,z-0.5)#V3
-                    #后
-                    glVertex3f(x-0.5,y+0.5,z+0.5)#V4
-                    glVertex3f(x+0.5,y+0.5,z+0.5)#V5
-                    glVertex3f(x+0.5,y-0.5,z+0.5)#V6
-                    glVertex3f(x-0.5,y-0.5,z+0.5)#V7
-                    glEnd()
+    global draw,block_VAO,block_EBO,block_VBO,block_EBO_buffer_len
+    if not draw:
+        block_point_buffer=[]
+        block_color_buffer=[]
+        block_EBO_buffer=[]
+        glBindBuffer(GL_ARRAY_BUFFER,glGenLists(1))
+        for x in range(sx-int((look_length-1)/2),sx+int((look_length-1)/2)+1):
+            for y in range(lowest_y,highest_y+1):
+                for z in range(sz-int((look_length-1)/2),sz+int((look_length-1)/2)+1):
+                    by_wzq=read_block(x,y,z)
+                    if not by_wzq==0:
+                        #图盗的
+                        #    v4----- v5
+                        #   /|      /|
+                        #  v0------v1|
+                        #  | |     | |
+                        #  | v7----|-v6
+                        #  |/      |/
+                        #  v3------v2
+                        color=block_color[by_wzq-1]
+                        # glBegin(GL_QUADS)#使用GL_QUADS是为了以后的遮挡更新做准备
+                        # glColor3ub(color[0],color[1],color[2])
+                        # #上
+                        # glVertex3f(x-0.5,y+0.5,z-0.5)#V0
+                        # glVertex3f(x+0.5,y+0.5,z-0.5)#V1
+                        # glVertex3f(x+0.5,y+0.5,z+0.5)#V5
+                        # glVertex3f(x-0.5,y+0.5,z+0.5)#V4
+                        # #下
+                        # glVertex3f(x-0.5,y-0.5,z-0.5)#V3
+                        # glVertex3f(x+0.5,y-0.5,z-0.5)#V2
+                        # glVertex3f(x+0.5,y-0.5,z+0.5)#V6
+                        # glVertex3f(x-0.5,y-0.5,z+0.5)#V7
+                        # #左
+                        # glVertex3f(x-0.5,y+0.5,z-0.5)#V0
+                        # glVertex3f(x-0.5,y-0.5,z-0.5)#V3
+                        # glVertex3f(x-0.5,y-0.5,z+0.5)#V7
+                        # glVertex3f(x-0.5,y+0.5,z+0.5)#V4
+                        # #右
+                        # glVertex3f(x+0.5,y+0.5,z-0.5)#V1
+                        # glVertex3f(x+0.5,y-0.5,z-0.5)#V2
+                        # glVertex3f(x+0.5,y-0.5,z+0.5)#V6
+                        # glVertex3f(x+0.5,y+0.5,z+0.5)#V5
+                        # #前
+                        # glVertex3f(x-0.5,y+0.5,z-0.5)#V0
+                        # glVertex3f(x+0.5,y+0.5,z-0.5)#V1
+                        # glVertex3f(x+0.5,y-0.5,z-0.5)#V2
+                        # glVertex3f(x-0.5,y-0.5,z-0.5)#V3
+                        # #后
+                        # glVertex3f(x-0.5,y+0.5,z+0.5)#V4
+                        # glVertex3f(x+0.5,y+0.5,z+0.5)#V5
+                        # glVertex3f(x+0.5,y-0.5,z+0.5)#V6
+                        # glVertex3f(x-0.5,y-0.5,z+0.5)#V7
+                        # glEnd()
+                        # block_draw_buffer+=x-0.5,y+0.5,z-0.5,x+0.5,y+0.5,z-0.5,x+0.5,y+0.5,z+0.5,x-0.5,y+0.5,z+0.5
+                        # block_draw_buffer+=x-0.5,y-0.5,z-0.5,x+0.5,y-0.5,z-0.5,x+0.5,y-0.5,z+0.5,x-0.5,y-0.5,z+0.5
+                        # block_draw_buffer+=x-0.5,y+0.5,z-0.5,x-0.5,y-0.5,z-0.5,x-0.5,y-0.5,z+0.5,x-0.5,y+0.5,z+0.5
+                        # block_draw_buffer+=x+0.5,y+0.5,z-0.5,x+0.5,y-0.5,z-0.5,x+0.5,y-0.5,z+0.5,x+0.5,y+0.5,z+0.5
+                        # block_draw_buffer+=x-0.5,y+0.5,z-0.5,x+0.5,y+0.5,z-0.5,x+0.5,y-0.5,z-0.5,x-0.5,y-0.5,z-0.5
+                        # block_draw_buffer+=x-0.5,y+0.5,z+0.5,x+0.5,y+0.5,z+0.5,x+0.5,y-0.5,z+0.5,x-0.5,y-0.5,z+0.5
+                        # for i in range(24):color_draw_buffer+=color[0],color[1],color[2]
+                        block_point_buffer+=x-0.5,y+0.5,z-0.5,x+0.5,y+0.5,z-0.5,x+0.5,y-0.5,z-0.5,x-0.5,y+0.5,z+0.5,x+0.5,y+0.5,z+0.5,x+0.5,y-0.5,z+0.5,x-0.5,y-0.5,z+0.5
+                        block_EBO_buffer+=0,1,5,4,3,2,6,7,0,3,7,4,1,2,6,5,0,1,2,3,4,5,6,7
+        #创建VBO（顶点）
+        block_VBO=glGenBuffers(1)
+        glBindBuffer(GL_ARRAY_BUFFER,block_VBO)
+        a=numpy.array(block_point_buffer,dtype='float32')
+        glBufferData(GL_ARRAY_BUFFER,len(a)*4,a,GL_STATIC_DRAW)
+        #创建EBO（索引）
+        block_EBO=glGenBuffers(1)
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,block_EBO)
+        a=numpy.array(block_EBO_buffer,dtype='float32')
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER,len(a)*4,a,GL_STATIC_DRAW)
+        block_EBO_buffer_len=len(a)
+        #创建VAO（综合）
+        block_VAO=glGenVertexArrays(1)
+        glBindVertexArray(block_VAO)
+        glBindBuffer(GL_ARRAY_BUFFER,block_VBO)
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,block_EBO)
+        glVertexPointer(3,GL_FLOAT,0,None)
+        glEnableClientState(GL_VERTEX_ARRAY)
+        glBindVertexArray(0)
+        draw=True
+    glBindVertexArray(block_VAO)
+
+    glDrawElements(GL_QUADS,block_EBO_buffer_len,GL_UNSIGNED_INT,None)
+    glBindVertexArray(0)
 def print_text_list(text:list,callback=None,x=0,y=0,m=1,color=(250,255,255)):#TODO:以后别忘了把这个颜色改掉，换个更好看的
     global font,window_width
     debug_hDC=wglGetCurrentDC()
@@ -484,5 +529,5 @@ glDepthFunc(GL_LESS)
 glutKeyboardFunc(keyboarddown)
 glutKeyboardUpFunc(keyboardup)
 init_info=(glGetDoublev(GL_MODELVIEW_MATRIX),glGetDoublev(GL_PROJECTION_MATRIX))
-guide_init()
+go_to_world()
 glutMainLoop()#正式开始运行
