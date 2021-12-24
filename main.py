@@ -53,7 +53,7 @@ import json,os,copy
 
 #允许用户自定义的变量,已将大部分变量做好注释
 mouse_move_speed=0.01 #鼠标移动距离
-player_move_speed=0.01
+player_move_speed=0.1
 look_length=15  #渲染距离,只支持不小于1的奇数
 highest_y=100  #世界最高Y坐标
 lowest_y=0   #世界最低Y坐标，目前如果更改将会报错！
@@ -196,7 +196,6 @@ def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，�
         block_point_buffer=[]
         block_color_buffer=[]
         block_EBO_buffer=[]
-        glBindBuffer(GL_ARRAY_BUFFER,glGenLists(1))
         for x in range(sx-int((look_length-1)/2),sx+int((look_length-1)/2)+1):
             for y in range(lowest_y,highest_y+1):
                 for z in range(sz-int((look_length-1)/2),sz+int((look_length-1)/2)+1):
@@ -251,19 +250,37 @@ def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，�
                         # block_draw_buffer+=x-0.5,y+0.5,z-0.5,x+0.5,y+0.5,z-0.5,x+0.5,y-0.5,z-0.5,x-0.5,y-0.5,z-0.5
                         # block_draw_buffer+=x-0.5,y+0.5,z+0.5,x+0.5,y+0.5,z+0.5,x+0.5,y-0.5,z+0.5,x-0.5,y-0.5,z+0.5
                         # for i in range(24):color_draw_buffer+=color[0],color[1],color[2]
-                        block_point_buffer+=x-0.5,y+0.5,z-0.5,x+0.5,y+0.5,z-0.5,x+0.5,y-0.5,z-0.5,x-0.5,y+0.5,z+0.5,x+0.5,y+0.5,z+0.5,x+0.5,y-0.5,z+0.5,x-0.5,y-0.5,z+0.5
-                        block_EBO_buffer+=0,1,5,4,3,2,6,7,0,3,7,4,1,2,6,5,0,1,2,3,4,5,6,7
+                        block_point_buffer+=[x-0.5,y+0.5,z-0.5,#V0
+                                            x+0.5,y+0.5,z-0.5,#V1
+                                            x+0.5,y-0.5,z-0.5,#V2
+                                            x-0.5,y-0.5,z-0.5,#V3
+                                            x-0.5,y+0.5,z+0.5,#V4
+                                            x+0.5,y+0.5,z+0.5,#V5
+                                            x+0.5,y-0.5,z+0.5,#V6
+                                            x-0.5,y-0.5,z+0.5]#V7
+                        a=len(block_EBO_buffer)
+                        block_EBO_buffer+=[a+0,a+1,a+5,a+4,
+                                           3,2,6,7,
+                                           0,3,7,4,
+                                           1,2,6,5,
+                                           0,1,2,3,
+                                           4,5,6,7]
+                        for i in range(0,len(block_point_buffer),3):
+                            print(block_point_buffer[i:i+3])
+                        print("————————————————————————————————————")
+                        for i in range(0,len(block_EBO_buffer),4):
+                            print(block_EBO_buffer[i:i+4])
         #创建VBO（顶点）
         block_VBO=glGenBuffers(1)
         glBindBuffer(GL_ARRAY_BUFFER,block_VBO)
         a=numpy.array(block_point_buffer,dtype='float32')
-        glBufferData(GL_ARRAY_BUFFER,len(a)*4,a,GL_STATIC_DRAW)
+        glBufferData(GL_ARRAY_BUFFER,sys.getsizeof(a),a,GL_STATIC_DRAW)
         #创建EBO（索引）
         block_EBO=glGenBuffers(1)
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,block_EBO)
         a=numpy.array(block_EBO_buffer,dtype='float32')
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER,len(a)*4,a,GL_STATIC_DRAW)
-        block_EBO_buffer_len=len(a)
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER,sys.getsizeof(a),a,GL_STATIC_DRAW)
+        block_EBO_buffer_len=len(block_EBO_buffer)
         #创建VAO（综合）
         block_VAO=glGenVertexArrays(1)
         glBindVertexArray(block_VAO)
@@ -273,8 +290,8 @@ def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，�
         glEnableClientState(GL_VERTEX_ARRAY)
         glBindVertexArray(0)
         draw=True
+        glPolygonMode(GL_FRONT_AND_BACK,GL_LINE)
     glBindVertexArray(block_VAO)
-
     glDrawElements(GL_QUADS,block_EBO_buffer_len,GL_UNSIGNED_INT,None)
     glBindVertexArray(0)
 def print_text_list(text:list,callback=None,x=0,y=0,m=1,color=(250,255,255)):#TODO:以后别忘了把这个颜色改掉，换个更好看的
