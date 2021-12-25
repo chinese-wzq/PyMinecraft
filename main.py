@@ -209,47 +209,13 @@ def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，�
                         #  | v7----|-v6
                         #  |/      |/
                         #  v3------v2
-                        color=block_color[by_wzq-1]
-                        # glBegin(GL_QUADS)#使用GL_QUADS是为了以后的遮挡更新做准备
-                        # glColor3ub(color[0],color[1],color[2])
-                        # #上
-                        # glVertex3f(x-0.5,y+0.5,z-0.5)#V0
-                        # glVertex3f(x+0.5,y+0.5,z-0.5)#V1
-                        # glVertex3f(x+0.5,y+0.5,z+0.5)#V5
-                        # glVertex3f(x-0.5,y+0.5,z+0.5)#V4
-                        # #下
-                        # glVertex3f(x-0.5,y-0.5,z-0.5)#V3
-                        # glVertex3f(x+0.5,y-0.5,z-0.5)#V2
-                        # glVertex3f(x+0.5,y-0.5,z+0.5)#V6
-                        # glVertex3f(x-0.5,y-0.5,z+0.5)#V7
-                        # #左
-                        # glVertex3f(x-0.5,y+0.5,z-0.5)#V0
-                        # glVertex3f(x-0.5,y-0.5,z-0.5)#V3
-                        # glVertex3f(x-0.5,y-0.5,z+0.5)#V7
-                        # glVertex3f(x-0.5,y+0.5,z+0.5)#V4
-                        # #右
-                        # glVertex3f(x+0.5,y+0.5,z-0.5)#V1
-                        # glVertex3f(x+0.5,y-0.5,z-0.5)#V2
-                        # glVertex3f(x+0.5,y-0.5,z+0.5)#V6
-                        # glVertex3f(x+0.5,y+0.5,z+0.5)#V5
-                        # #前
-                        # glVertex3f(x-0.5,y+0.5,z-0.5)#V0
-                        # glVertex3f(x+0.5,y+0.5,z-0.5)#V1
-                        # glVertex3f(x+0.5,y-0.5,z-0.5)#V2
-                        # glVertex3f(x-0.5,y-0.5,z-0.5)#V3
-                        # #后
-                        # glVertex3f(x-0.5,y+0.5,z+0.5)#V4
-                        # glVertex3f(x+0.5,y+0.5,z+0.5)#V5
-                        # glVertex3f(x+0.5,y-0.5,z+0.5)#V6
-                        # glVertex3f(x-0.5,y-0.5,z+0.5)#V7
-                        # glEnd()
-                        # block_draw_buffer+=x-0.5,y+0.5,z-0.5,x+0.5,y+0.5,z-0.5,x+0.5,y+0.5,z+0.5,x-0.5,y+0.5,z+0.5
-                        # block_draw_buffer+=x-0.5,y-0.5,z-0.5,x+0.5,y-0.5,z-0.5,x+0.5,y-0.5,z+0.5,x-0.5,y-0.5,z+0.5
-                        # block_draw_buffer+=x-0.5,y+0.5,z-0.5,x-0.5,y-0.5,z-0.5,x-0.5,y-0.5,z+0.5,x-0.5,y+0.5,z+0.5
-                        # block_draw_buffer+=x+0.5,y+0.5,z-0.5,x+0.5,y-0.5,z-0.5,x+0.5,y-0.5,z+0.5,x+0.5,y+0.5,z+0.5
-                        # block_draw_buffer+=x-0.5,y+0.5,z-0.5,x+0.5,y+0.5,z-0.5,x+0.5,y-0.5,z-0.5,x-0.5,y-0.5,z-0.5
-                        # block_draw_buffer+=x-0.5,y+0.5,z+0.5,x+0.5,y+0.5,z+0.5,x+0.5,y-0.5,z+0.5,x-0.5,y-0.5,z+0.5
-                        # for i in range(24):color_draw_buffer+=color[0],color[1],color[2]
+                        a=len(block_point_buffer)/3
+                        block_EBO_buffer+=[a+0,a+1,a+5,a+4,
+                                           a+3,a+2,a+6,a+7,
+                                           a+0,a+3,a+7,a+4,
+                                           a+1,a+2,a+6,a+5,
+                                           a+0,a+1,a+2,a+3,
+                                           a+4,a+5,a+6,a+7]
                         block_point_buffer+=[x-0.5,y+0.5,z-0.5,#V0
                                             x+0.5,y+0.5,z-0.5,#V1
                                             x+0.5,y-0.5,z-0.5,#V2
@@ -258,18 +224,7 @@ def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，�
                                             x+0.5,y+0.5,z+0.5,#V5
                                             x+0.5,y-0.5,z+0.5,#V6
                                             x-0.5,y-0.5,z+0.5]#V7
-                        a=len(block_EBO_buffer)
-                        block_EBO_buffer+=[a+0,a+1,a+5,a+4,
-                                           3,2,6,7,
-                                           0,3,7,4,
-                                           1,2,6,5,
-                                           0,1,2,3,
-                                           4,5,6,7]
-                        for i in range(0,len(block_point_buffer),3):
-                            print(block_point_buffer[i:i+3])
-                        print("————————————————————————————————————")
-                        for i in range(0,len(block_EBO_buffer),4):
-                            print(block_EBO_buffer[i:i+4])
+                        block_color_buffer+=[block_color[by_wzq-1]]
         #创建VBO（顶点）
         block_VBO=glGenBuffers(1)
         glBindBuffer(GL_ARRAY_BUFFER,block_VBO)
@@ -278,7 +233,7 @@ def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，�
         #创建EBO（索引）
         block_EBO=glGenBuffers(1)
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,block_EBO)
-        a=numpy.array(block_EBO_buffer,dtype='float32')
+        a=numpy.array(block_EBO_buffer,dtype='uint32')
         glBufferData(GL_ELEMENT_ARRAY_BUFFER,sys.getsizeof(a),a,GL_STATIC_DRAW)
         block_EBO_buffer_len=len(block_EBO_buffer)
         #创建VAO（综合）
@@ -290,7 +245,6 @@ def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，�
         glEnableClientState(GL_VERTEX_ARRAY)
         glBindVertexArray(0)
         draw=True
-        glPolygonMode(GL_FRONT_AND_BACK,GL_LINE)
     glBindVertexArray(block_VAO)
     glDrawElements(GL_QUADS,block_EBO_buffer_len,GL_UNSIGNED_INT,None)
     glBindVertexArray(0)
@@ -428,13 +382,14 @@ def spectator_mode(button):
     player_z+=z*player_move_speed
     glutPostRedisplay()
 def run_command(command):#名义上叫做运行指令，实际上负责了聊天框输入事件处理的全部
-    global chat_list,chat_list_show_time
+    global chat_list,chat_list_show_time,draw
     if command[0]=="/":
         #对输入进行拆分
         command_split=command[1:].split(' ')
         if command_split[0]=="fill":
             for i in range(10):
                 write_block(int(command_split[1])+i,int(command_split[2]),int(command_split[3]),int(command_split[4]))
+            draw=False
         if command_split[0]=="tp":
             global player_x,player_y,player_z
             player_x=float(command_split[1])
@@ -466,8 +421,12 @@ def keyboarddown(button,x,y):
     else:
         if not keyboard[b'\x1b'] and button==b'\x1b':lock_or_unlock_mouse(lock_muose)#锁定或非锁定状态
         elif not keyboard[b'`'] and button==b'`':#调试模式
-            if debug:debug=False
-            else:debug=True
+            if debug:
+                glPolygonMode(GL_FRONT_AND_BACK,GL_FILL)
+                debug=False
+            else:
+                glPolygonMode(GL_FRONT_AND_BACK,GL_LINE)
+                debug=True
             glutPostRedisplay()
         elif button==b'/':
             input_text=True

@@ -14,19 +14,21 @@
 ### 为什么会有这个项目？
 ##### 本来是想学习PyOpenGL,当时想到Minecraft也是用OpenGL渲染的，那么为什么我不能呢？于是，这样一个Python写的Mincraft就横空出世了。
 ******************************************************************************
+
 # 使用教程：
-
-1. 安装依赖库
-   本项目所需依赖库:
-      1.PyOpenGL
-       (如果无法运行可能需要手动安装正确位数的版本)
-
-      2.pywin32
-
-   你可以通过在命令行中运行"pip install PyOpenGL pywin32"来自动安装
-
-2. 运行主程序
-
-    运行"main.py"即可。
+>一、安装依赖库
+>>本项目所需依赖库:
+>>* PyOpenGL
+>>>64位电脑不能使用`pip install PyOpenGL`直接安装，因为默认安装的是32位的，否则会出现错误：OpenGL.error.NullFunctionError: Attempt to call an undefined function”
+>>>
+>>>64位应该下载.whl文件安装，32位可直接使用 `pip install pyopengl` 安装
+>>>
+>>>对于64位电脑，你可以在https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyopengl 下载对应的whl如“”PyOpenGL‑3.1.5‑cp310‑cp310‑win_amd64.whl“”后使用`pip install 你下载的whl文件`安装
+>>* pywin32
+>>>你可以直接在命令行中运行"pip install pywin32"安装
+   
+   二、 运行主程序
+      
+   运行"main.py"即可。
 ******************************************************************************
 # 永远不要忘记Minecraft,那是只属于我们的世界。
