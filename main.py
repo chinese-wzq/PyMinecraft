@@ -75,7 +75,7 @@ player_see_y=0
 lock_muose=False
 debug=False
 map=[]
-block_color=[(50,205,50)]
+block_color=[(1.0,1.0,1.0,1.0)]
 debug_text=[['XYZ:',0.0,',',0.0,',',0.0],
             ['EYE:',0,',',0],]
 block_size=11   #必须为单数
@@ -186,9 +186,11 @@ def write_block(x:int,y:int,z:int,write:int):
     center_block_z=(block_Z-0.5)*block_size
     map=write_list(map,write,[temp3,temp4,temp5,temp6,y,float2int(x-center_block_x),float2int(z-center_block_z)],fill_callback=write_block_fill_callback)
 draw=False
+block_VAO=0
 block_VBO=0
 block_EBO=0
-block_VAO=0
+color_EBO=0
+color_VBO=0
 block_EBO_buffer_len=0
 def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，不会全部显示一遍，多伤显卡QAQ
     global draw,block_VAO,block_EBO,block_VBO,block_EBO_buffer_len
@@ -196,6 +198,7 @@ def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，�
         block_point_buffer=[]
         block_color_buffer=[]
         block_EBO_buffer=[]
+        color_EBO_buffer=[]
         for x in range(sx-int((look_length-1)/2),sx+int((look_length-1)/2)+1):
             for y in range(lowest_y,highest_y+1):
                 for z in range(sz-int((look_length-1)/2),sz+int((look_length-1)/2)+1):
@@ -210,12 +213,6 @@ def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，�
                         #  |/      |/
                         #  v3------v2
                         a=len(block_point_buffer)/3
-                        block_EBO_buffer+=[a+0,a+1,a+5,a+4,
-                                           a+3,a+2,a+6,a+7,
-                                           a+0,a+3,a+7,a+4,
-                                           a+1,a+2,a+6,a+5,
-                                           a+0,a+1,a+2,a+3,
-                                           a+4,a+5,a+6,a+7]
                         block_point_buffer+=[x-0.5,y+0.5,z-0.5,#V0
                                             x+0.5,y+0.5,z-0.5,#V1
                                             x+0.5,y-0.5,z-0.5,#V2
@@ -224,25 +221,49 @@ def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，�
                                             x+0.5,y+0.5,z+0.5,#V5
                                             x+0.5,y-0.5,z+0.5,#V6
                                             x-0.5,y-0.5,z+0.5]#V7
-                        block_color_buffer+=[block_color[by_wzq-1]]
+                        block_EBO_buffer+=[a+0,a+1,a+5,a+4,
+                                           a+3,a+2,a+6,a+7,
+                                           a+0,a+3,a+7,a+4,
+                                           a+1,a+2,a+6,a+5,
+                                           a+0,a+1,a+2,a+3,
+                                           a+4,a+5,a+6,a+7]
+                        block_color_buffer+=block_color[by_wzq-1]*24
+                        color_EBO_buffer+=[0]*24
         #创建VBO（顶点）
         block_VBO=glGenBuffers(1)
         glBindBuffer(GL_ARRAY_BUFFER,block_VBO)
         a=numpy.array(block_point_buffer,dtype='float32')
         glBufferData(GL_ARRAY_BUFFER,sys.getsizeof(a),a,GL_STATIC_DRAW)
-        #创建EBO（索引）
+        #创建EBO（顶点索引）
         block_EBO=glGenBuffers(1)
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,block_EBO)
         a=numpy.array(block_EBO_buffer,dtype='uint32')
         glBufferData(GL_ELEMENT_ARRAY_BUFFER,sys.getsizeof(a),a,GL_STATIC_DRAW)
-        block_EBO_buffer_len=len(block_EBO_buffer)
+        block_EBO_buffer_len=len(a)
+        #创建VBO（颜色）
+        color_VBO=glGenBuffers(1)
+        glBindBuffer(GL_ARRAY_BUFFER,color_VBO)
+        a=numpy.array(block_color_buffer,dtype='uint32')
+        glBufferData(GL_ARRAY_BUFFER,sys.getsizeof(a),a,GL_STATIC_DRAW)
+        #创建VBO（颜色）
+        color_EBO=glGenBuffers(1)
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,color_EBO)
+        a=numpy.array(color_EBO_buffer,dtype='uint32')
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER,sys.getsizeof(a),a,GL_STATIC_DRAW)
         #创建VAO（综合）
         block_VAO=glGenVertexArrays(1)
         glBindVertexArray(block_VAO)
+
         glBindBuffer(GL_ARRAY_BUFFER,block_VBO)
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,block_EBO)
         glVertexPointer(3,GL_FLOAT,0,None)
         glEnableClientState(GL_VERTEX_ARRAY)
+
+        glBindBuffer(GL_ARRAY_BUFFER,color_VBO)
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,color_EBO)
+        glColorPointer(4,GL_FLOAT,0,None)
+        glEnableClientState(GL_COLOR_ARRAY)
+
         glBindVertexArray(0)
         draw=True
     glBindVertexArray(block_VAO)
@@ -488,7 +509,7 @@ def nothing(*args):pass
 def init():
     #进行glut的最基础初始化
     glutInit()
-    glutInitDisplayMode(GLUT_DOUBLE|GLUT_ALPHA|GLUT_DEPTH)
+    glutInitDisplayMode(GLUT_DOUBLE|GLUT_DEPTH)
     glutCreateWindow("PyMinecraft ByWzq".encode('GBK',errors="replace"))
     #使用户无法更改窗口大小
     hwnd=win32gui.GetForegroundWindow()
