@@ -75,7 +75,7 @@ player_see_y=0
 lock_muose=False
 debug=False
 map=[]
-block_color=[(1.0,1.0,1.0,1.0)]
+block_color=[(255,255,0)]
 debug_text=[['XYZ:',0.0,',',0.0,',',0.0],
             ['EYE:',0,',',0],]
 block_size=11   #必须为单数
@@ -185,15 +185,18 @@ def write_block(x:int,y:int,z:int,write:int):
     center_block_x=(block_X-0.5)*block_size
     center_block_z=(block_Z-0.5)*block_size
     map=write_list(map,write,[temp3,temp4,temp5,temp6,y,float2int(x-center_block_x),float2int(z-center_block_z)],fill_callback=write_block_fill_callback)
+
 draw=False
 block_VAO=0
-block_VBO=0
-block_EBO=0
-color_EBO=0
-color_VBO=0
 block_EBO_buffer_len=0
 def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，不会全部显示一遍，多伤显卡QAQ
-    global draw,block_VAO,block_EBO,block_VBO,block_EBO_buffer_len
+    #特别鸣谢：Stack Overflow用户Rabbid76
+    #没有他回答了我两个问题，我这一辈子都做不出来
+    #问题链接：
+    #https://stackoverflow.com/questions/70476151/opengl-vbo-can-run-without-error-but-no-graphics
+    #https://stackoverflow.com/questions/70610206/opengl-vbo-vao-ebo-can-run-without-error-but-no-graphics
+    #虽然他别没有叫我贴上这个注释，不过我想，做人要学会感恩😀
+    global draw,block_VAO,block_EBO_buffer_len
     if not draw:
         block_point_buffer=[]
         block_color_buffer=[]
@@ -227,43 +230,36 @@ def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，�
                                            a+1,a+2,a+6,a+5,
                                            a+0,a+1,a+2,a+3,
                                            a+4,a+5,a+6,a+7]
-                        block_color_buffer+=block_color[by_wzq-1]*24
-                        color_EBO_buffer+=[0]*24
-        #创建VBO（顶点）
+                        block_color_buffer+=block_color[by_wzq-1]*8
+        #创建顶点VBO
         block_VBO=glGenBuffers(1)
         glBindBuffer(GL_ARRAY_BUFFER,block_VBO)
         a=numpy.array(block_point_buffer,dtype='float32')
         glBufferData(GL_ARRAY_BUFFER,sys.getsizeof(a),a,GL_STATIC_DRAW)
-        #创建EBO（顶点索引）
+        #创建颜色VBO
+        color_VBO=glGenBuffers(1)
+        glBindBuffer(GL_ARRAY_BUFFER,color_VBO)
+        a=numpy.array(block_color_buffer,dtype='float32')
+        glBufferData(GL_ARRAY_BUFFER,sys.getsizeof(a),a,GL_STATIC_DRAW)
+        #绑定VAO
+        block_VAO=glGenVertexArrays(1)
+        glBindVertexArray(block_VAO)
+        #绑定EBO
+        #必须先绑定再创建EBO
         block_EBO=glGenBuffers(1)
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,block_EBO)
         a=numpy.array(block_EBO_buffer,dtype='uint32')
         glBufferData(GL_ELEMENT_ARRAY_BUFFER,sys.getsizeof(a),a,GL_STATIC_DRAW)
         block_EBO_buffer_len=len(a)
-        #创建VBO（颜色）
-        color_VBO=glGenBuffers(1)
-        glBindBuffer(GL_ARRAY_BUFFER,color_VBO)
-        a=numpy.array(block_color_buffer,dtype='uint32')
-        glBufferData(GL_ARRAY_BUFFER,sys.getsizeof(a),a,GL_STATIC_DRAW)
-        #创建VBO（颜色）
-        color_EBO=glGenBuffers(1)
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,color_EBO)
-        a=numpy.array(color_EBO_buffer,dtype='uint32')
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER,sys.getsizeof(a),a,GL_STATIC_DRAW)
-        #创建VAO（综合）
-        block_VAO=glGenVertexArrays(1)
-        glBindVertexArray(block_VAO)
-
+        #绑定顶点VBO
         glBindBuffer(GL_ARRAY_BUFFER,block_VBO)
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,block_EBO)
         glVertexPointer(3,GL_FLOAT,0,None)
         glEnableClientState(GL_VERTEX_ARRAY)
-
+        #绑定颜色VBO
         glBindBuffer(GL_ARRAY_BUFFER,color_VBO)
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,color_EBO)
-        glColorPointer(4,GL_FLOAT,0,None)
+        glColorPointer(3,GL_FLOAT,0,None)
         glEnableClientState(GL_COLOR_ARRAY)
-
+        #解绑
         glBindVertexArray(0)
         draw=True
     glBindVertexArray(block_VAO)
