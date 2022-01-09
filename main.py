@@ -75,7 +75,7 @@ player_see_y=0
 lock_muose=False
 debug=False
 map=[]
-block_color=[(255,255,0)]
+block_color=[(0.22,0.91,0.22)]
 debug_text=[['XYZ:',0.0,',',0.0,',',0.0],
             ['EYE:',0,',',0],]
 block_size=11   #必须为单数
@@ -216,14 +216,14 @@ def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，�
                         #  |/      |/
                         #  v3------v2
                         a=len(block_point_buffer)/3
-                        block_point_buffer+=[x-0.5,y+0.5,z-0.5,#V0
-                                            x+0.5,y+0.5,z-0.5,#V1
-                                            x+0.5,y-0.5,z-0.5,#V2
-                                            x-0.5,y-0.5,z-0.5,#V3
-                                            x-0.5,y+0.5,z+0.5,#V4
-                                            x+0.5,y+0.5,z+0.5,#V5
-                                            x+0.5,y-0.5,z+0.5,#V6
-                                            x-0.5,y-0.5,z+0.5]#V7
+                        block_point_buffer+=[x-0.5,y+0.5,z-0.5,    #V0
+                                             x+0.5,y+0.5,z-0.5,    #V1
+                                             x+0.5,y-0.5,z-0.5,    #V2
+                                             x-0.5,y-0.5,z-0.5,    #V3
+                                             x-0.5,y+0.5,z+0.5,    #V4
+                                             x+0.5,y+0.5,z+0.5,    #V5
+                                             x+0.5,y-0.5,z+0.5,    #V6
+                                             x-0.5,y-0.5,z+0.5]    #V7
                         block_EBO_buffer+=[a+0,a+1,a+5,a+4,
                                            a+3,a+2,a+6,a+7,
                                            a+0,a+3,a+7,a+4,
@@ -404,8 +404,7 @@ def run_command(command):#名义上叫做运行指令，实际上负责了聊天
         #对输入进行拆分
         command_split=command[1:].split(' ')
         if command_split[0]=="fill":
-            for i in range(10):
-                write_block(int(command_split[1])+i,int(command_split[2]),int(command_split[3]),int(command_split[4]))
+            write_block(int(command_split[1]),int(command_split[2]),int(command_split[3]),int(command_split[4]))
             draw=False
         if command_split[0]=="tp":
             global player_x,player_y,player_z
@@ -427,9 +426,13 @@ def lock_or_unlock_mouse(a):
 def keyboarddown(button,x,y):
     global keyboard,input_text,input_buffer,debug,lock_muose
     if input_text:
-        if button==b'\x1b' or button==b'\r':
+        if button==b'\r':
             input_text=False
             run_command(input_buffer)
+            input_buffer=""
+            lock_or_unlock_mouse(False)
+        if button==b'\x1b':
+            input_text=False
             input_buffer=""
             lock_or_unlock_mouse(False)
         elif button==b'\x08':input_buffer=input_buffer[:-1]
