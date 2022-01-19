@@ -508,7 +508,7 @@ def nothing(*args):pass
 def init():
     #进行glut的最基础初始化
     glutInit()
-    glutInitDisplayMode(GLUT_DOUBLE|GLUT_DEPTH)
+    glutInitDisplayMode(GLUT_DOUBLE|GLUT_DEPTH|GLUT_ALPHA)
     glutCreateWindow("PyMinecraft ByWzq".encode('GBK',errors="replace"))
     #使用户无法更改窗口大小
     hwnd=win32gui.GetForegroundWindow()
@@ -518,7 +518,7 @@ def init():
     #完成其余的初始化
     glutReshapeWindow(window_long*2,window_width*2)
     glViewport(0,0,window_long*2,window_width*2)
-    glClearColor(0.0,0.0,0.0,0.0)
+    glClearColor(0.0,174.0,238.0,238.0)
 init()
 glEnable(GL_DEPTH_TEST)
 glDepthFunc(GL_LESS)
