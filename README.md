@@ -1,11 +1,14 @@
-<a href="https://996.icu"><img src="https://img.shields.io/badge/link-996.icu-red.svg" alt="996.icu" /></a><img src="https://img.shields.io/badge/重复造轮子-技术需要在造轮子中提升-blue.svg" alt="996.icu" /></a>
+<a href="https://996.icu"><img src="https://img.shields.io/badge/link-996.icu-red.svg" alt="996.icu" /></a>
+<img src="https://img.shields.io/badge/高性能-基于PyOpenGL-blue.svg" />
+
+中文 | [Gitee English](https://gitee.com/this_is_the_best_name/PyMinecraft/README_EN.md) | [Github English](https://github.com/chinese-wzq/PyMinecraft/README_EN.md)
 # python&Minecraft,所以叫做"PyMinecraft"
 ******************************************************************************
 <a href="https://info.flagcounter.com/zBbk"><img src="https://s05.flagcounter.com/map/zBbk/size_l/txt_000000/border_CCCCCC/pageviews_1/viewers_0/flags_0/" alt="Flag Counter" border="0"></a>
 ******************************************************************************
 # 本项目仅支持Windows（其实只需要进行小小的移植，但是我懒）
 ******************************************************************************
-# 如果您想鼓励我，给我点个免费的Star吧，实在不行写几条代码给我也行啊QAQ
+# 如果您想鼓励我，给我点个免费的Star吧，实在不行提交几个Pull requests也行啊QAQ
 ##### 你不点Star,我不点Star,程序员明天就自杀
 ******************************************************************************
 ## Github已更新"看板"，你可以在那里看到我将来和现在的计划。[空降地址🪂](https://github.com/yi-ge-shuai-qi-de-kai-fa-zhe/PyMinecraft/projects/)
