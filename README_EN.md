@@ -1,7 +1,7 @@
 <a href="https://996.icu"><img src="https://img.shields.io/badge/link-996.icu-red.svg" alt="996.icu" /></a>
 <img src="https://img.shields.io/badge/Fast-Based on PyOpenGL-blue.svg" />
 
-[Gitee中文](https://gitee.com/this_is_the_best_name/PyMinecraft/blob/master/README.md) | [Github中文](https://github.com/chinese-wzq/PyMinecraft/) | English
+[Gitee中文](https://gitee.com/this_is_the_best_name/PyMinecraft/) | [Github中文](https://github.com/chinese-wzq/PyMinecraft/) | English
 # python&Minecraft,so name"PyMinecraft"
 ******************************************************************************
 <a href="https://info.flagcounter.com/zBbk"><img src="https://s05.flagcounter.com/map/zBbk/size_l/txt_000000/border_CCCCCC/pageviews_1/viewers_0/flags_0/" alt="Flag Counter" border="0"></a>
