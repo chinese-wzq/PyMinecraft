@@ -85,6 +85,7 @@ temp2=(buffer_block_size-1)/2
 temp7=(block_size-1)/-2
 keyboard={}
 for i in [b'\x1b',b'`',b'w',b's',b'a',b'd']:keyboard[i]=False
+mouse={0:1,2:1}
 input_text=False
 input_buffer=""
 chat_list=[]
@@ -185,7 +186,6 @@ def write_block(x:int,y:int,z:int,write:int):
     center_block_x=(block_X-0.5)*block_size
     center_block_z=(block_Z-0.5)*block_size
     map=write_list(map,write,[temp3,temp4,temp5,temp6,y,float2int(x-center_block_x),float2int(z-center_block_z)],fill_callback=write_block_fill_callback)
-
 draw=False
 block_VAO=0
 block_EBO_buffer_len=0
@@ -378,6 +378,15 @@ def world_main_loop():
             print_text_list([input_buffer]+chat_list,y=0.585,m=-1,color=(a,a,a))
     #显示指令栏
     if input_text:print_text_list([input_buffer]+chat_list,y=0.585,m=-1)
+    glLoadIdentity()
+    glTranslatef(-0.3,0.29,-0.1)#-0.1是为了防止文字被后面的物体遮挡！
+    glBegin(GL_LINES)
+    glColor3ub(220,220,220)
+    glVertex3f(0.29,-0.3,0)
+    glVertex3f(0.31,-0.3,0)
+    glVertex3f(0.3,-0.29,0)
+    glVertex3f(0.3,-0.31,0)
+    glEnd()
     glutSwapBuffers()
 def walk_left(a,b):return a+1.57,b#1.57是实测出来的数据~
 def spectator_mode(button):
@@ -423,6 +432,37 @@ def lock_or_unlock_mouse(a):
         lock_muose=True
         glutSetCursor(GLUT_CURSOR_NONE)
         glutPostRedisplay()
+def mouse_hit_test():
+    #感谢开源项目https://github.com/fogleman/Minecraft提供的函数思路！
+    #都使用模拟射线的方法
+    x,y,z=player_x,player_y+1,player_z
+    x_vector,y_vector,z_vector=view_orientations(player_see_x,player_see_y)
+    x_vector=x_vector*0.1
+    y_vector=y_vector*0.1
+    z_vector=z_vector*0.1
+    free_block=0
+    for _ in range(50):
+        free_block=float2int(x),float2int(y),float2int(z)
+        x+=x_vector
+        y+=y_vector
+        z+=z_vector
+        if read_block(float2int(x),float2int(y),float2int(z))!=0:
+            return (float2int(x),float2int(y),float2int(z)),free_block
+    return (0,0,0),(0,0,0)
+def world_mouseclick(button,state,x,y):
+    global mouse,draw
+    print(button,state)
+    if not mouse[2]:
+        i=mouse_hit_test()[1]
+        if i!=(0,0,0):
+            write_block(i[0],i[1],i[2],1)
+            draw=False
+    if not mouse[0]:
+        i=mouse_hit_test()[0]
+        if i!=(0,0,0):
+            write_block(i[0],i[1],i[2],0)
+            draw=False
+    mouse[button]=state
 def keyboarddown(button,x,y):
     global keyboard,input_text,input_buffer,debug,lock_muose
     if input_text:
@@ -494,6 +534,7 @@ def guide_init():#处理情况：游戏退出到主界面，其他界面退出�
     glutSetCursor(GLUT_CURSOR_LEFT_ARROW)
     glutIdleFunc(nothing)
     glutPassiveMotionFunc(nothing)
+    glutMouseFunc(nothing)
     glMatrixMode(GL_MODELVIEW)
     glLoadMatrixd(init_info[0])
     glMatrixMode(GL_PROJECTION)
@@ -504,6 +545,7 @@ def go_to_world():
     glutDisplayFunc(world_main_loop)
     glutIdleFunc(backgroud)
     glutPassiveMotionFunc(world_mousemove)
+    glutMouseFunc(world_mouseclick)
 def nothing(*args):pass
 def init():
     #进行glut的最基础初始化
