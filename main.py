@@ -84,7 +84,7 @@ temp1=block_size/2#区块加载的缓存变量
 temp2=(buffer_block_size-1)/2
 temp7=(block_size-1)/-2
 keyboard={}
-for i in [b'\x1b',b'`',b'w',b's',b'a',b'd']:keyboard[i]=False
+for i in [b'\x1b',b'`',b'w',b's',b'a',b'd',b" "]:keyboard[i]=False
 mouse={0:1,2:1}
 input_text=False
 input_buffer=""
@@ -437,11 +437,11 @@ def mouse_hit_test():
     #都使用模拟射线的方法
     x,y,z=player_x,player_y+1,player_z
     x_vector,y_vector,z_vector=view_orientations(player_see_x,player_see_y)
-    x_vector=x_vector*0.1
-    y_vector=y_vector*0.1
-    z_vector=z_vector*0.1
+    x_vector=x_vector*0.01
+    y_vector=y_vector*0.01
+    z_vector=z_vector*0.01
     free_block=0
-    for _ in range(50):
+    for _ in range(200):
         free_block=float2int(x),float2int(y),float2int(z)
         x+=x_vector
         y+=y_vector
@@ -464,7 +464,7 @@ def world_mouseclick(button,state,x,y):
             draw=False
     mouse[button]=state
 def keyboarddown(button,x,y):
-    global keyboard,input_text,input_buffer,debug,lock_muose
+    global keyboard,input_text,input_buffer,debug,lock_muose,player_y
     if input_text:
         if button==b'\r':
             input_text=False
@@ -516,10 +516,13 @@ def world_mousemove(x,y):
         glutWarpPointer(window_long,window_width)
         glutPostRedisplay()
 def backgroud():
-    global keyboard
+    global keyboard,player_y
     #键盘
     for i in [b'w',b's',b'a',b'd']:
         if keyboard[i]:spectator_mode(i)
+    if keyboard[b' ']:
+        player_y+=0.1
+        glutPostRedisplay()
     #聊天框淡化事件，必须要激活
     if chat_list_show_time!=0 and not input_text:glutPostRedisplay()
 def guide_button_event_init():
