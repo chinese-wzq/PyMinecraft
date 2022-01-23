@@ -50,6 +50,9 @@ import math
 import win32con,win32gui
 #导入区块读取相关库
 import json,os,copy
+#导入方块贴图生成库
+from PIL import Image
+from PIL import ImageDraw
 
 #允许用户自定义的变量,已将大部分变量做好注释
 mouse_move_speed=0.01 #鼠标移动距离
@@ -60,7 +63,7 @@ lowest_y=0   #世界最低Y坐标，目前如果更改将会报错！
 player_x=0    #这几个不必细说，都懂都懂
 player_y=-1
 player_z=-1
-font="Microsoft YaHei UI"    #显示文字时使用的字体
+font="SimHei"    #显示文字时使用的字体
 window_long=400    #窗口的长与宽
 window_width=400
 set_chat_list_show_time=50      #聊天框显示多久，2/3时间不变，1/3时间淡化消失
@@ -75,7 +78,7 @@ player_see_y=0
 lock_muose=False
 debug=False
 map=[]
-block_color=[(0.22,0.91,0.22)]
+block_texture=[]
 debug_text=[['XYZ:',0.0,',',0.0,',',0.0],
             ['EYE:',0,',',0],]
 block_size=11   #必须为单数
@@ -91,6 +94,16 @@ input_buffer=""
 chat_list=[]
 chat_list_show_time=0
 guide_buttons=[]
+def create_block_texture(block_type:int):#没错，方块材质直接现画！
+    block=Image.new("RGB",(100,100),"white")
+    draw=ImageDraw.Draw(block)
+    if block_type==1:draw.line([5,5,5,95,95,95,95,5,5,5],(0,255,0),10)
+    pixels=block.load()
+    all_pixels=[]
+    for x in range(100):
+        for y in range(100):all_pixels+=list(pixels[x,y])
+    return bytes(all_pixels)
+block_texture.append(create_block_texture(1))
 def float2int(i):return int(str(i).split(".")[0])
 def write_list(wait_write_list:list,write:str,point:list,fill=0,fill_callback=None):#代码再不重写就TM要爆炸了
     really_point=wait_write_list
@@ -199,11 +212,10 @@ def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，�
     global draw,block_VAO,block_EBO_buffer_len
     if not draw:
         block_point_buffer=[]
-        block_color_buffer=[]
         block_EBO_buffer=[]
         color_EBO_buffer=[]
-        for x in range(sx-int((look_length-1)/2),sx+int((look_length-1)/2)+1):
-            for y in range(lowest_y,highest_y+1):
+        for y in range(lowest_y,highest_y+1):
+            for x in range(sx-int((look_length-1)/2),sx+int((look_length-1)/2)+1):
                 for z in range(sz-int((look_length-1)/2),sz+int((look_length-1)/2)+1):
                     by_wzq=read_block(x,y,z)
                     if not by_wzq==0:
@@ -230,17 +242,20 @@ def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，�
                                            a+1,a+2,a+6,a+5,
                                            a+0,a+1,a+2,a+3,
                                            a+4,a+5,a+6,a+7]
-                        block_color_buffer+=block_color[by_wzq-1]*8
+
         #创建顶点VBO
         block_VBO=glGenBuffers(1)
         glBindBuffer(GL_ARRAY_BUFFER,block_VBO)
         a=numpy.array(block_point_buffer,dtype='float32')
         glBufferData(GL_ARRAY_BUFFER,sys.getsizeof(a),a,GL_STATIC_DRAW)
-        #创建颜色VBO
-        color_VBO=glGenBuffers(1)
-        glBindBuffer(GL_ARRAY_BUFFER,color_VBO)
-        a=numpy.array(block_color_buffer,dtype='float32')
-        glBufferData(GL_ARRAY_BUFFER,sys.getsizeof(a),a,GL_STATIC_DRAW)
+        #创建纹理VBO
+        texture_VBO=glGenTextures(1)
+        glBindTextures(GL_TEXTURE_2D,texture_VBO)
+        glTexImage(GL_TEXTURE_2D,0,GL_RGB,100,100,GL_RGB,GL_UNSIGNED_BYTE,block_texture[0])
+        #纹理回绕参数
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT)
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT)
+
         #绑定VAO
         block_VAO=glGenVertexArrays(1)
         glBindVertexArray(block_VAO)
@@ -255,28 +270,27 @@ def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，�
         glBindBuffer(GL_ARRAY_BUFFER,block_VBO)
         glVertexPointer(3,GL_FLOAT,0,None)
         glEnableClientState(GL_VERTEX_ARRAY)
-        #绑定颜色VBO
-        glBindBuffer(GL_ARRAY_BUFFER,color_VBO)
-        glColorPointer(3,GL_FLOAT,0,None)
-        glEnableClientState(GL_COLOR_ARRAY)
+        #绑定纹理VBO
+        glTexCoordPointer(2,GL_FLOAT,0,None)
+        glEnableClientState(GL_TEXTURE_2D_ARRAY)
         #解绑
         glBindVertexArray(0)
         draw=True
     glBindVertexArray(block_VAO)
     glDrawElements(GL_QUADS,block_EBO_buffer_len,GL_UNSIGNED_INT,None)
     glBindVertexArray(0)
-def print_text_list(text:list,callback=None,x=0,y=0,m=1,color=(250,255,255)):#TODO:以后别忘了把这个颜色改掉，换个更好看的
+def print_text_list(text:list,callback=None,x=0,y=0,m=1,color=(0,0,0),init=True,font_hieght=30,font_width=20):#TODO:以后别忘了把这个颜色改掉，换个更好看的
     global font,window_width
     debug_hDC=wglGetCurrentDC()
-    font_hieght=30
     #设定文字的字体、颜色和背景
-    win32gui.SelectObject(debug_hDC,win32ui.CreateFont({"height":font_hieght,"name":font}).GetSafeHandle())
+    win32gui.SelectObject(debug_hDC,win32ui.CreateFont({"height":1000,"width":1000,"name":font}).GetSafeHandle())
     win32gui.SetBkMode(debug_hDC,win32con.TRANSPARENT)
     glColor3ub(color[0],color[1],color[2])
     if callback is not None:callback(debug_hDC)
     #开始显示（把连接和显示整到一起去了）
-    glLoadIdentity()
-    glTranslatef(-0.3,0.29,-0.1)#-0.1是为了防止文字被后面的物体遮挡！
+    if init:
+        glLoadIdentity()
+        glTranslatef(-0.3,0.29,-0.1)#-0.1是为了防止文字被后面的物体遮挡！
     qaq=y
     draw_text_list=glGenLists(1)
     for i in text:
@@ -532,6 +546,7 @@ def guide_main_loop():
     glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
     glColor3f(1.0,0.0,0.0)
     glRectf(-0.5,-0.5,0.5,0.5)
+    print_text_list(text=["PyMinecraft"],init=False,x=0,y=-0.7,font_hieght=-32,font_width=-18)
     glutSwapBuffers()
 def guide_init():#处理情况：游戏退出到主界面，其他界面退出到主界面
     glutSetCursor(GLUT_CURSOR_LEFT_ARROW)
@@ -570,5 +585,6 @@ glDepthFunc(GL_LESS)
 glutKeyboardFunc(keyboarddown)
 glutKeyboardUpFunc(keyboardup)
 init_info=(glGetDoublev(GL_MODELVIEW_MATRIX),glGetDoublev(GL_PROJECTION_MATRIX))
+#guide_init()
 go_to_world()
 glutMainLoop()#正式开始运行
