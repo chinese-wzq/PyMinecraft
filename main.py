@@ -201,7 +201,8 @@ def write_block(x:int,y:int,z:int,write:int):
     map=write_list(map,write,[temp3,temp4,temp5,temp6,y,float2int(x-center_block_x),float2int(z-center_block_z)],fill_callback=write_block_fill_callback)
 draw=False
 block_VAO=0
-block_EBO_buffer_len=0
+block_VBO_buffer_len=0
+texture_VBO=0
 def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，不会全部显示一遍，多伤显卡QAQ
     #特别鸣谢：Stack Overflow用户Rabbid76
     #没有他回答了我两个问题，我这一辈子都做不出来
@@ -209,11 +210,11 @@ def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，�
     #https://stackoverflow.com/questions/70476151/opengl-vbo-can-run-without-error-but-no-graphics
     #https://stackoverflow.com/questions/70610206/opengl-vbo-vao-ebo-can-run-without-error-but-no-graphics
     #虽然他别没有叫我贴上这个注释，不过我想，做人要学会感恩😀
-    global draw,block_VAO,block_EBO_buffer_len
+    global draw,block_VAO,block_VBO_buffer_len,texture_VBO
     if not draw:
         block_point_buffer=[]
-        block_EBO_buffer=[]
-        color_EBO_buffer=[]
+        block_color_buffer=[]
+        texture_coord=[]
         for y in range(lowest_y,highest_y+1):
             for x in range(sx-int((look_length-1)/2),sx+int((look_length-1)/2)+1):
                 for z in range(sz-int((look_length-1)/2),sz+int((look_length-1)/2)+1):
@@ -227,57 +228,90 @@ def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，�
                         #  | v7----|-v6
                         #  |/      |/
                         #  v3------v2
-                        a=len(block_point_buffer)/3
-                        block_point_buffer+=[x-0.5,y+0.5,z-0.5,    #V0
-                                             x+0.5,y+0.5,z-0.5,    #V1
-                                             x+0.5,y-0.5,z-0.5,    #V2
-                                             x-0.5,y-0.5,z-0.5,    #V3
-                                             x-0.5,y+0.5,z+0.5,    #V4
-                                             x+0.5,y+0.5,z+0.5,    #V5
-                                             x+0.5,y-0.5,z+0.5,    #V6
-                                             x-0.5,y-0.5,z+0.5]    #V7
-                        block_EBO_buffer+=[a+0,a+1,a+5,a+4,
-                                           a+3,a+2,a+6,a+7,
-                                           a+0,a+3,a+7,a+4,
-                                           a+1,a+2,a+6,a+5,
-                                           a+0,a+1,a+2,a+3,
-                                           a+4,a+5,a+6,a+7]
+                        block_point_buffer+=[x-0.5,y+0.5,z-0.5,  #V0
+                                             x+0.5,y+0.5,z-0.5,  #V1
+                                             x+0.5,y+0.5,z+0.5,  #V5
+                                             x-0.5,y+0.5,z+0.5,  #V4
 
+                                             x-0.5,y-0.5,z-0.5,  #V3
+                                             x+0.5,y-0.5,z-0.5,  #V2
+                                             x+0.5,y-0.5,z+0.5,  #V6
+                                             x-0.5,y-0.5,z+0.5,  #V7
+
+                                             x+0.5,y-0.5,z-0.5,  #V2
+                                             x+0.5,y-0.5,z+0.5,  #V6
+                                             x+0.5,y+0.5,z+0.5,  #V5
+                                             x+0.5,y+0.5,z-0.5,  #V1
+
+                                             x-0.5,y-0.5,z-0.5,  #V3
+                                             x-0.5,y-0.5,z+0.5,  #V7
+                                             x-0.5,y+0.5,z+0.5,  #V4
+                                             x-0.5,y+0.5,z-0.5,  #V0
+
+                                             x-0.5,y-0.5,z-0.5,  #V3
+                                             x+0.5,y-0.5,z-0.5,  #V2
+                                             x+0.5,y+0.5,z-0.5,  #V1
+                                             x-0.5,y+0.5,z-0.5,  #V0
+
+                                             x-0.5,y-0.5,z+0.5,  #V7
+                                             x+0.5,y-0.5,z+0.5,  #V6
+                                             x+0.5,y+0.5,z+0.5,  #V5
+                                             x-0.5,y+0.5,z+0.5,] #V4
+                        block_color_buffer+=(0.0,0.0,0.0)*6
+                        texture_coord+=[1.0,1.0,
+                                        0.0,1.0,
+                                        0.0,0.0,
+                                        1.0,0.0]*6
         #创建顶点VBO
         block_VBO=glGenBuffers(1)
         glBindBuffer(GL_ARRAY_BUFFER,block_VBO)
         a=numpy.array(block_point_buffer,dtype='float32')
         glBufferData(GL_ARRAY_BUFFER,sys.getsizeof(a),a,GL_STATIC_DRAW)
+        block_VBO_buffer_len=int(len(a)/3)
+        #创建颜色VBO
+        color_VBO=glGenBuffers(1)
+        glBindBuffer(GL_ARRAY_BUFFER,color_VBO)
+        a=numpy.array(block_color_buffer,dtype='float32')
+        glBufferData(GL_ARRAY_BUFFER,sys.getsizeof(a),a,GL_STATIC_DRAW)
         #创建纹理VBO
         texture_VBO=glGenTextures(1)
-        glBindTextures(GL_TEXTURE_2D,texture_VBO)
-        glTexImage(GL_TEXTURE_2D,0,GL_RGB,100,100,GL_RGB,GL_UNSIGNED_BYTE,block_texture[0])
-        #纹理回绕参数
+        glBindTexture(GL_TEXTURE_2D,texture_VBO)
         glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT)
         glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT)
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR)
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR)
+        glTexImage2D(GL_TEXTURE_2D,0,GL_RGB,100,100,0,GL_RGB,GL_UNSIGNED_BYTE,block_texture[0])
+        glGenerateMipmap(GL_TEXTURE_2D)
+        glBindTexture(GL_TEXTURE_2D,0)
+        #创建纹理指针
+        texture_EBO=glGenBuffers(1)
+        glBindBuffer(GL_ARRAY_BUFFER,texture_EBO)
 
+        a=numpy.array(texture_coord,dtype='float32')
+        glBufferData(GL_ARRAY_BUFFER,sys.getsizeof(a),a,GL_STATIC_DRAW)
         #绑定VAO
         block_VAO=glGenVertexArrays(1)
         glBindVertexArray(block_VAO)
-        #绑定EBO
-        #必须先绑定再创建EBO
-        block_EBO=glGenBuffers(1)
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,block_EBO)
-        a=numpy.array(block_EBO_buffer,dtype='uint32')
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER,sys.getsizeof(a),a,GL_STATIC_DRAW)
-        block_EBO_buffer_len=len(a)
         #绑定顶点VBO
         glBindBuffer(GL_ARRAY_BUFFER,block_VBO)
         glVertexPointer(3,GL_FLOAT,0,None)
         glEnableClientState(GL_VERTEX_ARRAY)
         #绑定纹理VBO
+        glBindBuffer(GL_ARRAY_BUFFER,texture_EBO)
         glTexCoordPointer(2,GL_FLOAT,0,None)
-        glEnableClientState(GL_TEXTURE_2D_ARRAY)
+        glEnableClientState(GL_TEXTURE_COORD_ARRAY)
+        #绑定颜色VBO
+        # glBindBuffer(GL_ARRAY_BUFFER,color_VBO)
+        # glColorPointer(3,GL_FLOAT,0,None)
+        # glEnableClientState(GL_COLOR_ARRAY)
         #解绑
         glBindVertexArray(0)
         draw=True
+    glEnable(GL_TEXTURE_2D)
+    #glTexEnvi(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_REPLACE)
+    glBindTexture(GL_TEXTURE_2D,texture_VBO)
     glBindVertexArray(block_VAO)
-    glDrawElements(GL_QUADS,block_EBO_buffer_len,GL_UNSIGNED_INT,None)
+    glDrawArrays(GL_QUADS,0,block_VBO_buffer_len)
     glBindVertexArray(0)
 def print_text_list(text:list,callback=None,x=0,y=0,m=1,color=(0,0,0),init=True,font_hieght=30,font_width=20):#TODO:以后别忘了把这个颜色改掉，换个更好看的
     global font,window_width
