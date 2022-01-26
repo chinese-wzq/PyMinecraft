@@ -311,6 +311,7 @@ def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，�
     #glTexEnvi(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_REPLACE)
     glBindTexture(GL_TEXTURE_2D,texture_VBO)
     glBindVertexArray(block_VAO)
+    glColor3ub(255,255,255)
     glDrawArrays(GL_QUADS,0,block_VBO_buffer_len)
     glBindVertexArray(0)
 def print_text_list(text:list,callback=None,x=0,y=0,m=1,color=(0,0,0),init=True,font_hieght=30,font_width=20):#TODO:以后别忘了把这个颜色改掉，换个更好看的
@@ -416,25 +417,54 @@ def world_main_loop():
     )
     #渲染方块
     print_blocks(int(player_x),int(player_y),int(player_z))
+    #显示选中的方块
+    #    v4----- v5
+    #   /|      /|
+    #  v0------v1|
+    #  | |     | |
+    #  | v7----|-v6
+    #  |/      |/
+    #  v3------v2
+    x,y,z=mouse_hit_test()[0]
+    if (x,y,z)!=(0,0,0):
+        a=[x-0.5,y+0.5,z-0.5,  #V0
+           x+0.5,y+0.5,z-0.5,  #V1
+           x+0.5,y-0.5,z-0.5,  #V2
+           x-0.5,y-0.5,z-0.5,  #V3
+           x-0.5,y+0.5,z+0.5,  #V4
+           x+0.5,y+0.5,z+0.5,  #V5
+           x+0.5,y-0.5,z+0.5,  #V6
+           x-0.5,y-0.5,z+0.5,] #V7
+        b=[0,3,1,2,5,6,4,7,0,1,4,5,7,6,3,2,0,4,1,5,2,6,3,7]
+        glLineWidth(5)
+        glBegin(GL_LINES)
+        glColor3ub(232,232,232)
+        for i in range(int(len(b)/2)):
+            glVertex3f(a[b[i*2]*3],a[b[i*2]*3+1],a[b[i*2]*3+2])
+            glVertex3f(a[b[i*2+1]*3],a[b[i*2+1]*3+1],a[b[i*2+1]*3+2])
+        glEnd()
     #调试模式
     debug_main()
+    #显示指令栏
     if chat_list_show_time!=0 and not input_text:
         chat_list_show_time-=1
         if set_chat_list_show_time/3*1<chat_list_show_time:print_text_list([input_buffer]+chat_list,y=0.585,m=-1)
         else:
             a=int(255/(set_chat_list_show_time/3*1)*(set_chat_list_show_time/3*1-(set_chat_list_show_time/3*1)+chat_list_show_time))
             print_text_list([input_buffer]+chat_list,y=0.585,m=-1,color=(a,a,a))
-    #显示指令栏
     if input_text:print_text_list([input_buffer]+chat_list,y=0.585,m=-1)
+    #显示指针
     glLoadIdentity()
     glTranslatef(-0.3,0.29,-0.1)#-0.1是为了防止文字被后面的物体遮挡！
+    glLineWidth(2)
     glBegin(GL_LINES)
-    glColor3ub(220,220,220)
+    glColor3ub(232,232,232)
     glVertex3f(0.29,-0.3,0)
     glVertex3f(0.31,-0.3,0)
     glVertex3f(0.3,-0.29,0)
     glVertex3f(0.3,-0.31,0)
     glEnd()
+    #交换缓存，显示画面
     glutSwapBuffers()
 def walk_left(a,b):return a+1.57,b#1.57是实测出来的数据~
 def spectator_mode(button):
@@ -482,24 +512,18 @@ def lock_or_unlock_mouse(a):
         glutPostRedisplay()
 def mouse_hit_test():
     #感谢开源项目https://github.com/fogleman/Minecraft提供的函数思路！
-    #都使用模拟射线的方法
+    m=8#精度
     x,y,z=player_x,player_y+1,player_z
     x_vector,y_vector,z_vector=view_orientations(player_see_x,player_see_y)
-    x_vector=x_vector*0.01
-    y_vector=y_vector*0.01
-    z_vector=z_vector*0.01
     free_block=0
-    for _ in range(200):
+    for _ in range(int(60*m)):
         free_block=float2int(x),float2int(y),float2int(z)
-        x+=x_vector
-        y+=y_vector
-        z+=z_vector
+        x,y,z=x+x_vector/m,y+y_vector/m,z+z_vector/m
         if read_block(float2int(x),float2int(y),float2int(z))!=0:
             return (float2int(x),float2int(y),float2int(z)),free_block
     return (0,0,0),(0,0,0)
 def world_mouseclick(button,state,x,y):
     global mouse,draw
-    print(button,state)
     if not mouse[2]:
         i=mouse_hit_test()[1]
         if i!=(0,0,0):

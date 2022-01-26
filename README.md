@@ -3,6 +3,7 @@
 
 中文 | [Gitee English](https://gitee.com/this_is_the_best_name/PyMinecraft/blob/master/README_EN.md) | [Github English](https://github.com/chinese-wzq/PyMinecraft/blob/master/README_EN.md)
 # python&Minecraft,所以叫做"PyMinecraft"
+![](https://www.wumouren.xyz/wp-content/uploads/2022/01/pyminecraft.png)
 ******************************************************************************
 <a href="https://info.flagcounter.com/zBbk"><img src="https://s05.flagcounter.com/map/zBbk/size_l/txt_000000/border_CCCCCC/pageviews_1/viewers_0/flags_0/" alt="Flag Counter" border="0"></a>
 ******************************************************************************
