@@ -68,7 +68,7 @@ window_long=400    #窗口的长与宽
 window_width=400
 set_chat_list_show_time=50      #聊天框显示多久，2/3时间不变，1/3时间淡化消失
 saves_folder_dir="D:\\桌面\\PyMinecraft\\saves\\"   #指定了存储所有存档的文件夹的位置
-save_folder_dir="D:\\桌面\\PyMinecraft\\saves\\example\\"   #指定了存储单个存档的文件夹的位置
+save_folder_dir=".\\saves\\example\\"   #指定了存储单个存档的文件夹的位置
 load_all_save=False   #在启动时就加载所有的区块，并且不会执行卸载和加载的程序，可以减少程序卡顿，但在存档过大时需谨慎开启
 
 #用户不应该动的变量
@@ -425,8 +425,9 @@ def world_main_loop():
     #  | v7----|-v6
     #  |/      |/
     #  v3------v2
-    x,y,z=mouse_hit_test()[0]
-    if (x,y,z)!=(0,0,0):
+    i=mouse_hit_test()[0]
+    if i!=1:
+        x,y,z=i
         a=[x-0.5,y+0.5,z-0.5,  #V0
            x+0.5,y+0.5,z-0.5,  #V1
            x+0.5,y-0.5,z-0.5,  #V2
@@ -521,17 +522,17 @@ def mouse_hit_test():
         x,y,z=x+x_vector/m,y+y_vector/m,z+z_vector/m
         if read_block(float2int(x),float2int(y),float2int(z))!=0:
             return (float2int(x),float2int(y),float2int(z)),free_block
-    return (0,0,0),(0,0,0)
+    return [1]
 def world_mouseclick(button,state,x,y):
     global mouse,draw
     if not mouse[2]:
         i=mouse_hit_test()[1]
-        if i!=(0,0,0):
+        if i!=1:
             write_block(i[0],i[1],i[2],1)
             draw=False
     if not mouse[0]:
         i=mouse_hit_test()[0]
-        if i!=(0,0,0):
+        if i!=1:
             write_block(i[0],i[1],i[2],0)
             draw=False
     mouse[button]=state
