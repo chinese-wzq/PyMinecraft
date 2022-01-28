@@ -53,8 +53,12 @@ import json,os,copy
 #导入方块贴图生成库
 from PIL import Image
 from PIL import ImageDraw
+#导入字体点阵获取相关库
+from freetype import *
 
 #允许用户自定义的变量,已将大部分变量做好注释
+from pyglet.gl import GL_SRC_ALPHA
+
 mouse_move_speed=0.01 #鼠标移动距离
 player_move_speed=0.1
 look_length=15  #渲染距离,只支持不小于1的奇数
@@ -63,8 +67,8 @@ lowest_y=0   #世界最低Y坐标，目前如果更改将会报错！
 player_x=0    #这几个不必细说，都懂都懂
 player_y=-1
 player_z=-1
-font="SimHei"    #显示文字时使用的字体
-window_long=400    #窗口的长与宽
+font="C:/WINDOWS/Fonts/msyh.ttc"    #显示文字时使用的字体,需完整路径
+window_height=400    #窗口的长和宽
 window_width=400
 set_chat_list_show_time=50      #聊天框显示多久，2/3时间不变，1/3时间淡化消失
 saves_folder_dir="D:\\桌面\\PyMinecraft\\saves\\"   #指定了存储所有存档的文件夹的位置
@@ -105,7 +109,7 @@ def create_block_texture(block_type:int):#没错，方块材质直接现画！
     return bytes(all_pixels)
 block_texture.append(create_block_texture(1))
 def float2int(i):return int(str(i).split(".")[0])
-def write_list(wait_write_list:list,write:str,point:list,fill=0,fill_callback=None):#代码再不重写就TM要爆炸了
+def write_list(wait_write_list:list,write:str,point:list,fill:any=0,fill_callback=None):#代码再不重写就TM要爆炸了
     really_point=wait_write_list
     for i in range(len(point)):
         while point[i]>len(really_point)-1:
@@ -209,6 +213,7 @@ def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，�
     #问题链接：
     #https://stackoverflow.com/questions/70476151/opengl-vbo-can-run-without-error-but-no-graphics
     #https://stackoverflow.com/questions/70610206/opengl-vbo-vao-ebo-can-run-without-error-but-no-graphics
+    #https://stackoverflow.com/questions/70844191/pyopengl-run-with-no-texture
     #虽然他别没有叫我贴上这个注释，不过我想，做人要学会感恩😀
     global draw,block_VAO,block_VBO_buffer_len,texture_VBO
     if not draw:
@@ -268,11 +273,6 @@ def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，�
         a=numpy.array(block_point_buffer,dtype='float32')
         glBufferData(GL_ARRAY_BUFFER,sys.getsizeof(a),a,GL_STATIC_DRAW)
         block_VBO_buffer_len=int(len(a)/3)
-        #创建颜色VBO
-        color_VBO=glGenBuffers(1)
-        glBindBuffer(GL_ARRAY_BUFFER,color_VBO)
-        a=numpy.array(block_color_buffer,dtype='float32')
-        glBufferData(GL_ARRAY_BUFFER,sys.getsizeof(a),a,GL_STATIC_DRAW)
         #创建纹理VBO
         texture_VBO=glGenTextures(1)
         glBindTexture(GL_TEXTURE_2D,texture_VBO)
@@ -286,7 +286,6 @@ def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，�
         #创建纹理指针
         texture_EBO=glGenBuffers(1)
         glBindBuffer(GL_ARRAY_BUFFER,texture_EBO)
-
         a=numpy.array(texture_coord,dtype='float32')
         glBufferData(GL_ARRAY_BUFFER,sys.getsizeof(a),a,GL_STATIC_DRAW)
         #绑定VAO
@@ -300,58 +299,113 @@ def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，�
         glBindBuffer(GL_ARRAY_BUFFER,texture_EBO)
         glTexCoordPointer(2,GL_FLOAT,0,None)
         glEnableClientState(GL_TEXTURE_COORD_ARRAY)
-        #绑定颜色VBO
-        # glBindBuffer(GL_ARRAY_BUFFER,color_VBO)
-        # glColorPointer(3,GL_FLOAT,0,None)
-        # glEnableClientState(GL_COLOR_ARRAY)
         #解绑
         glBindVertexArray(0)
         draw=True
     glEnable(GL_TEXTURE_2D)
-    #glTexEnvi(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_REPLACE)
     glBindTexture(GL_TEXTURE_2D,texture_VBO)
     glBindVertexArray(block_VAO)
     glColor3ub(255,255,255)
     glDrawArrays(GL_QUADS,0,block_VBO_buffer_len)
     glBindVertexArray(0)
-def print_text_list(text:list,callback=None,x=0,y=0,m=1,color=(0,0,0),init=True,font_hieght=30,font_width=20):#TODO:以后别忘了把这个颜色改掉，换个更好看的
-    global font,window_width
-    debug_hDC=wglGetCurrentDC()
-    #设定文字的字体、颜色和背景
-    win32gui.SelectObject(debug_hDC,win32ui.CreateFont({"height":1000,"width":1000,"name":font}).GetSafeHandle())
-    win32gui.SetBkMode(debug_hDC,win32con.TRANSPARENT)
-    glColor3ub(color[0],color[1],color[2])
-    if callback is not None:callback(debug_hDC)
-    #开始显示（把连接和显示整到一起去了）
-    if init:
-        glLoadIdentity()
-        glTranslatef(-0.3,0.29,-0.1)#-0.1是为了防止文字被后面的物体遮挡！
-    qaq=y
-    draw_text_list=glGenLists(1)
+class GetCharacterImage:
+    def __init__(self,buffer=False):
+        self.__face=Face(font)
+        self.__load=False
+        self.buffer=buffer
+        if self.buffer:self.characters_buffer={}
+    def get_size(self):
+        if self.__load:
+            if self.buffer:return self.size_buffer
+            return self.rows,self.__bitmap.width
+        else:raise Exception("在创建字符前获取大小")
+    def character2types(self,character,size=48,color=(255,255,0),all_row=80):
+        """
+        :param character: 仅支持单个字符
+        :param size: 大小
+        :param color: 颜色
+        :param all_row: 自动补齐高度，使文字在图像中间
+        :return: 可以被opengl读取的格式
+        """
+        if self.buffer and character in self.characters_buffer:
+            self.size_buffer=self.characters_buffer[character+"_size"]
+            return self.characters_buffer[character]
+        self.__face.set_char_size(size*64)
+        self.__face.load_char(character)
+        self.__bitmap=self.__face.glyph.bitmap
+        self.__bitmap_buffer=self.__bitmap.buffer
+        self.__load=True
+        self.__bitmap__temp=[]
+        self.bitmap=[]
+        self.__temp=(self.__bitmap.rows,self.__bitmap.width)
+        #补行
+        if len(self.__bitmap_buffer)<all_row*self.__temp[1]:
+            self.rows=all_row
+            #按照指定长度切割列表
+            for i in range(self.__temp[0]):self.__bitmap__temp.append(list(self.__bitmap_buffer[i*self.__temp[1]:(i+1)*self.__temp[1]]))
+            self.__on_rows=float2int((all_row-len(self.__bitmap__temp))/2)
+            self.__under_rows=all_row-len(self.__bitmap__temp)-self.__on_rows
+            for _ in range(self.__on_rows):self.__bitmap__temp.insert(0,list([0]*self.__temp[1]))
+            for _ in range(self.__under_rows): self.__bitmap__temp.append(list([0]*self.__temp[1]))
+            #合并列表
+            debug=len(self.__bitmap__temp)
+            for _ in range(len(self.__bitmap__temp)-1):
+                self.__bitmap__temp[0]+=self.__bitmap__temp[1]
+                self.__bitmap__temp.pop(1)
+            self.__bitmap__temp=self.__bitmap__temp[0]
+        else:
+            self.__bitmap__temp=self.__bitmap_buffer
+            self.rows=self.__bitmap.rows
+        for i in self.__bitmap__temp:self.bitmap+=list(color)+[i]
+        if self.buffer:
+            self.characters_buffer[character]=bytes(self.bitmap)
+            self.characters_buffer[character+"_size"]=[self.rows,self.__bitmap.width]
+            self.size_buffer=self.characters_buffer[character+"_size"]
+            return self.characters_buffer[character]
+        return bytes(self.bitmap)
+character_getter=GetCharacterImage(buffer=True)
+def print_text_list_freetype(text:list,callback=None,x=0.0,y=0.0,z=0.0,m=1,color=(0,0,0),size=30,spacing=5):#采用freetype+texture,更自定义，字体更好看！
+    global character_getter
+    glEnable(GL_TEXTURE_2D)
+    glEnable(GL_BLEND)
+    glDisable(GL_DEPTH_TEST)
+    glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA)
     for i in text:
-        glRasterPos2f(x,-qaq)
-        for ii in i:
-            for iii in str(ii):
-                wglUseFontBitmapsW(debug_hDC,ord(iii),1,draw_text_list)
-                glCallList(draw_text_list)
-        qaq+=font_hieght/3000*m
-    win32gui.DeleteObject(debug_hDC)
-def debug_print_coordinates_text(hDC):
-    #显示坐标系文字（方便与MC原版进行矫正）
-    a=glGenLists(1)
-    glRasterPos3f(1,0,0)
-    wglUseFontBitmapsW(hDC,ord('x'),1,a)
-    glCallList(a)
-    glRasterPos3f(0,1,0)
-    wglUseFontBitmapsW(hDC,ord('y'),1,a)
-    glCallList(a)
-    glRasterPos3f(0,0,1)
-    wglUseFontBitmapsW(hDC,ord('z'),1,a)
-    glCallList(a)
-def debug_main():
-    global debug,player_see_x,player_see_y,player_x,player_y,player_z,debug_text
+        qaq=0
+        x=x
+        for ii in "".join([str(x) for x in i]):
+            texture=glGenTextures(1)
+            glBindTexture(GL_TEXTURE_2D,texture)
+            glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT)
+            glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT)
+            glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR)
+            glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR)
+            aa=character_getter.character2types(ii,size=size,color=color)
+            a=character_getter.get_size()
+            if a[0]>qaq:qaq=a[0]
+            glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,a[1],a[0],0,GL_RGBA,GL_UNSIGNED_BYTE,aa)
+            glGenerateMipmap(GL_TEXTURE_2D)
+            glBindTexture(GL_TEXTURE_2D,0)
+            glBindTexture(GL_TEXTURE_2D,texture)
+            glBegin(GL_QUADS)
+            glTexCoord2f(1,1)
+            glVertex3f(x+a[1],y,z)
+            glTexCoord2f(0,1)
+            glVertex3f(x,y,z)
+            glTexCoord2f(0,0)
+            glVertex3f(x,y+a[0],z)
+            glTexCoord2f(1,0)
+            glVertex3f(x+a[1],y+a[0],z)
+            glEnd()
+            x+=a[1]+spacing
+        y+=qaq*m
+    glDisable(GL_TEXTURE_2D)
+    glDisable(GL_BLEND)
+    glEnable(GL_DEPTH_TEST)
+def debug_3d():
     if debug:
         #显示一个世界原点的坐标系
+        glLineWidth(1)
         glBegin(GL_LINES)
         glColor3ub(0,0,255)
         glVertex3f(0,0,0)
@@ -363,6 +417,27 @@ def debug_main():
         glVertex3f(0,0,0)
         glVertex3f(0,0,1)
         glEnd()
+        #显示坐标系文字（方便与MC原版进行矫正）
+        hDC=wglGetCurrentDC()
+        #设定文字的字体、颜色和背景
+        win32gui.SelectObject(hDC,win32ui.CreateFont({"height":0,"width":0,"name":font}).GetSafeHandle())
+        win32gui.SetBkMode(hDC,win32con.TRANSPARENT)
+        glColor3ub(0,0,0)
+        a=glGenLists(1)
+        glRasterPos3f(1,0,0)
+        wglUseFontBitmapsW(hDC,ord('x'),1,a)
+        glCallList(a)
+        glRasterPos3f(0,1,0)
+        wglUseFontBitmapsW(hDC,ord('y'),1,a)
+        glCallList(a)
+        glRasterPos3f(0,0,1)
+        wglUseFontBitmapsW(hDC,ord('z'),1,a)
+        glCallList(a)
+        win32gui.DeleteObject(hDC)
+def debug_2d():
+    global debug_text
+    if debug:
+        #更新调试信息
         a=debug_text[0]
         a[1]=round(player_x,2)
         a[3]=round(player_y,2)
@@ -373,7 +448,7 @@ def debug_main():
         a[3]=round(player_see_y,2)
         debug_text[1]=a
         #调用文字显示函数显示debug内容，并顺便打印文字出来
-        print_text_list(debug_text,debug_print_coordinates_text)
+        print_text_list_freetype(debug_text)
 def view_orientations(px,py,callback=None):
     #我还没有学过三角函数，因此如果输入负数也能正常使用，以下代码可以更加简洁。请帮忙改一改哈😀
     if callback is not None:
@@ -405,7 +480,7 @@ def world_main_loop():
     glFrustum(-0.3,0.3,-0.3,0.3,0.1,8)
     #笔记：
     #glFrustum(left,right,bottom,top,zNear,zFar)
-    #这个函数的参数只定义近裁剪平面的左下角点和右上角点的三维空间坐标，即（left，bottom，-near）和（right，top，-near)
+    #这个函数的参数只定义近裁剪平面的左下角点和右上角点的三维空间坐标，即(left，bottom，-near)和(right，top，-near)
     glMatrixMode(GL_MODELVIEW)
     glLoadIdentity()
     #计算视角望向的位置
@@ -426,7 +501,7 @@ def world_main_loop():
     #  |/      |/
     #  v3------v2
     i=mouse_hit_test()[0]
-    if i!=1:
+    if i!=[1]:
         x,y,z=i
         a=[x-0.5,y+0.5,z-0.5,  #V0
            x+0.5,y+0.5,z-0.5,  #V1
@@ -444,27 +519,32 @@ def world_main_loop():
             glVertex3f(a[b[i*2]*3],a[b[i*2]*3+1],a[b[i*2]*3+2])
             glVertex3f(a[b[i*2+1]*3],a[b[i*2+1]*3+1],a[b[i*2+1]*3+2])
         glEnd()
-    #调试模式
-    debug_main()
-    #显示指令栏
-    if chat_list_show_time!=0 and not input_text:
-        chat_list_show_time-=1
-        if set_chat_list_show_time/3*1<chat_list_show_time:print_text_list([input_buffer]+chat_list,y=0.585,m=-1)
-        else:
-            a=int(255/(set_chat_list_show_time/3*1)*(set_chat_list_show_time/3*1-(set_chat_list_show_time/3*1)+chat_list_show_time))
-            print_text_list([input_buffer]+chat_list,y=0.585,m=-1,color=(a,a,a))
-    if input_text:print_text_list([input_buffer]+chat_list,y=0.585,m=-1)
-    #显示指针
+    debug_3d()
+    #进入2D状态
+    glMatrixMode(GL_PROJECTION)
     glLoadIdentity()
-    glTranslatef(-0.3,0.29,-0.1)#-0.1是为了防止文字被后面的物体遮挡！
+    gluOrtho2D(0,window_height*2,0,window_width*2)
+    glMatrixMode(GL_MODELVIEW)
+    glLoadIdentity()
+    #显示指针
     glLineWidth(2)
     glBegin(GL_LINES)
     glColor3ub(232,232,232)
-    glVertex3f(0.29,-0.3,0)
-    glVertex3f(0.31,-0.3,0)
-    glVertex3f(0.3,-0.29,0)
-    glVertex3f(0.3,-0.31,0)
+    glVertex2f(400,425)
+    glVertex2f(400,375)
+    glVertex2f(425,400)
+    glVertex2f(375,400)
     glEnd()
+    #调试模式
+    debug_2d()
+    #显示指令栏
+    if chat_list_show_time!=0 and not input_text:
+        chat_list_show_time-=1
+        if set_chat_list_show_time/3*1<chat_list_show_time:print_text_list_freetype([input_buffer]+chat_list,y=0.585,m=-1)
+        else:
+            a=int(255/(set_chat_list_show_time/3*1)*(set_chat_list_show_time/3*1-(set_chat_list_show_time/3*1)+chat_list_show_time))
+            print_text_list_freetype([input_buffer]+chat_list,y=0.585,m=-1,color=(a,a,a))
+    if input_text:print_text_list_freetype([input_buffer]+chat_list,y=0.585,m=-1)
     #交换缓存，显示画面
     glutSwapBuffers()
 def walk_left(a,b):return a+1.57,b#1.57是实测出来的数据~
@@ -507,7 +587,7 @@ def lock_or_unlock_mouse(a):
         lock_muose=False
         glutSetCursor(GLUT_CURSOR_LEFT_ARROW)
     else:
-        glutWarpPointer(window_long,window_width)
+        glutWarpPointer(window_height,window_width)
         lock_muose=True
         glutSetCursor(GLUT_CURSOR_NONE)
         glutPostRedisplay()
@@ -520,19 +600,20 @@ def mouse_hit_test():
     for _ in range(int(60*m)):
         free_block=float2int(x),float2int(y),float2int(z)
         x,y,z=x+x_vector/m,y+y_vector/m,z+z_vector/m
+        if y<lowest_y-0.5:return [1],[1]
         if read_block(float2int(x),float2int(y),float2int(z))!=0:
             return (float2int(x),float2int(y),float2int(z)),free_block
-    return [1]
+    return [1],[1]
 def world_mouseclick(button,state,x,y):
     global mouse,draw
     if not mouse[2]:
         i=mouse_hit_test()[1]
-        if i!=1:
+        if i!=[1]:
             write_block(i[0],i[1],i[2],1)
             draw=False
     if not mouse[0]:
         i=mouse_hit_test()[0]
-        if i!=1:
+        if i!=[1]:
             write_block(i[0],i[1],i[2],0)
             draw=False
     mouse[button]=state
@@ -554,12 +635,8 @@ def keyboarddown(button,x,y):
     else:
         if not keyboard[b'\x1b'] and button==b'\x1b':lock_or_unlock_mouse(lock_muose)#锁定或非锁定状态
         elif not keyboard[b'`'] and button==b'`':#调试模式
-            if debug:
-                glPolygonMode(GL_FRONT_AND_BACK,GL_FILL)
-                debug=False
-            else:
-                glPolygonMode(GL_FRONT_AND_BACK,GL_LINE)
-                debug=True
+            if debug:debug=False
+            else:debug=True
             glutPostRedisplay()
         elif button==b'/':
             input_text=True
@@ -578,15 +655,15 @@ def keyboardup(button,x,y):
     keyboard[button]=False
 def world_mousemove(x,y):
     global player_see_x,player_see_y
-    if lock_muose and window_long!=x and window_width!=y:
-        player_see_x=(window_long-x)*mouse_move_speed+player_see_x
+    if lock_muose and window_height!=x and window_width!=y:
+        player_see_x=(window_height-x)*mouse_move_speed+player_see_x
         player_see_y=(window_width-y)*mouse_move_speed+player_see_y
         #这里增加了数值限制，防止过头，因为是实测的数据，可能有不准，见谅~
         if player_see_y>2:player_see_y=2
         if player_see_y<-2:player_see_y=-2
         if player_see_x>3:player_see_x-=6
         if player_see_x<-3: player_see_x+=6
-        glutWarpPointer(window_long,window_width)
+        glutWarpPointer(window_height,window_width)
         glutPostRedisplay()
 def backgroud():
     global keyboard,player_y
@@ -602,10 +679,15 @@ def guide_button_event_init():
     global guide_buttons
     guide_buttons=[]
 def guide_main_loop():
-    glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
-    glColor3f(1.0,0.0,0.0)
-    glRectf(-0.5,-0.5,0.5,0.5)
-    print_text_list(text=["PyMinecraft"],init=False,x=0,y=-0.7,font_hieght=-32,font_width=-18)
+    glClear(GL_COLOR_BUFFER_BIT)
+    # glColor3f(1.0,0.0,0.0)
+    # glRectf(-0.5,-0.5,0.5,0.5)
+    glMatrixMode(GL_PROJECTION)
+    glLoadIdentity()
+    gluOrtho2D(0,window_height*2,0,window_width*2)
+    glMatrixMode(GL_MODELVIEW)
+    glLoadIdentity()
+    print_text_list_freetype(["PyMinecraft+-"],x=0,y=400,size=96)
     glutSwapBuffers()
 def guide_init():#处理情况：游戏退出到主界面，其他界面退出到主界面
     glutSetCursor(GLUT_CURSOR_LEFT_ARROW)
@@ -618,6 +700,7 @@ def guide_init():#处理情况：游戏退出到主界面，其他界面退出�
     glLoadMatrixd(init_info[1])
     glutDisplayFunc(guide_main_loop)
 def go_to_world():
+    glViewport(0,0,window_height*2,window_width*2)
     glutSetCursor(GLUT_CURSOR_NONE)
     glutDisplayFunc(world_main_loop)
     glutIdleFunc(backgroud)
@@ -627,7 +710,7 @@ def nothing(*args):pass
 def init():
     #进行glut的最基础初始化
     glutInit()
-    glutInitDisplayMode(GLUT_DOUBLE|GLUT_DEPTH|GLUT_ALPHA)
+    glutInitDisplayMode(GLUT_DOUBLE|GLUT_DEPTH|GLUT_RGBA)
     glutCreateWindow("PyMinecraft ByWzq".encode('GBK',errors="replace"))
     #使用户无法更改窗口大小
     hwnd=win32gui.GetForegroundWindow()
@@ -635,8 +718,7 @@ def init():
     A^=win32con.WS_THICKFRAME
     win32gui.SetWindowLong(hwnd,win32con.GWL_STYLE,A)
     #完成其余的初始化
-    glutReshapeWindow(window_long*2,window_width*2)
-    glViewport(0,0,window_long*2,window_width*2)
+    glutReshapeWindow(window_height*2,window_width*2)
     glClearColor(0.0,174.0,238.0,238.0)
 init()
 glEnable(GL_DEPTH_TEST)
@@ -644,6 +726,6 @@ glDepthFunc(GL_LESS)
 glutKeyboardFunc(keyboarddown)
 glutKeyboardUpFunc(keyboardup)
 init_info=(glGetDoublev(GL_MODELVIEW_MATRIX),glGetDoublev(GL_PROJECTION_MATRIX))
-#guide_init()
-go_to_world()
+guide_init()
+#go_to_world()
 glutMainLoop()#正式开始运行
