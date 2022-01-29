@@ -41,7 +41,7 @@ import numpy
 from OpenGL.GL import *
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
-#导入字体显示相关库
+#导入字体显示相关库(即将废弃)
 from OpenGL.WGL import *
 import win32ui
 #导入三角函数相关库
@@ -57,7 +57,6 @@ from PIL import ImageDraw
 from freetype import *
 
 #允许用户自定义的变量,已将大部分变量做好注释
-from pyglet.gl import GL_SRC_ALPHA
 
 mouse_move_speed=0.01 #鼠标移动距离
 player_move_speed=0.1
