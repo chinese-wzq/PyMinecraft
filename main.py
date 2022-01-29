@@ -319,17 +319,18 @@ class GetCharacterImage:
             if self.buffer:return self.size_buffer
             return self.rows,self.__bitmap.width
         else:raise Exception("在创建字符前获取大小")
-    def character2types(self,character,size=48,color=(255,255,0),all_row=80):
+    def character2types(self,character,size=24,color=(255,255,0),all_row=20,except_character=(",","，","。",".")):
         """
         :param character: 仅支持单个字符
         :param size: 大小
         :param color: 颜色
         :param all_row: 自动补齐高度，使文字在图像中间
+        :param except_character: 不补行的字符元组
         :return: 可以被opengl读取的格式
         """
-        if self.buffer and character in self.characters_buffer:
+        if self.buffer and character+str(size) in self.characters_buffer:
             self.size_buffer=self.characters_buffer[character+"_size"]
-            return self.characters_buffer[character]
+            return self.characters_buffer[character+str(size)]
         self.__face.set_char_size(size*64)
         self.__face.load_char(character)
         self.__bitmap=self.__face.glyph.bitmap
@@ -339,7 +340,7 @@ class GetCharacterImage:
         self.bitmap=[]
         self.__temp=(self.__bitmap.rows,self.__bitmap.width)
         #补行
-        if len(self.__bitmap_buffer)<all_row*self.__temp[1]:
+        if len(self.__bitmap_buffer)<all_row*self.__temp[1] and not character in except_character:
             self.rows=all_row
             #按照指定长度切割列表
             for i in range(self.__temp[0]):self.__bitmap__temp.append(list(self.__bitmap_buffer[i*self.__temp[1]:(i+1)*self.__temp[1]]))
@@ -358,13 +359,14 @@ class GetCharacterImage:
             self.rows=self.__bitmap.rows
         for i in self.__bitmap__temp:self.bitmap+=list(color)+[i]
         if self.buffer:
-            self.characters_buffer[character]=bytes(self.bitmap)
+            self.characters_buffer[character+str(size)]=bytes(self.bitmap)
             self.characters_buffer[character+"_size"]=[self.rows,self.__bitmap.width]
             self.size_buffer=self.characters_buffer[character+"_size"]
-            return self.characters_buffer[character]
+            return self.characters_buffer[character+str(size)]
         return bytes(self.bitmap)
 character_getter=GetCharacterImage(buffer=True)
-def print_text_list_freetype(text:list,callback=None,x=0.0,y=0.0,z=0.0,m=1,color=(0,0,0),size=30,spacing=5):#采用freetype+texture,更自定义，字体更好看！
+def print_text_list_freetype(text:list,callback=None,x=0,y=0,z=0,m=1,color=(0,0,0),size=24,spacing=5,all_row=20):#采用freetype+texture,更自定义，字体更好看！
+    #也许，缓存texture的效率更高？
     global character_getter
     glEnable(GL_TEXTURE_2D)
     glEnable(GL_BLEND)
@@ -372,15 +374,15 @@ def print_text_list_freetype(text:list,callback=None,x=0.0,y=0.0,z=0.0,m=1,color
     glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA)
     for i in text:
         qaq=0
-        x=x
-        for ii in "".join([str(x) for x in i]):
+        dx=x
+        for ii in "".join([str(x) for x in i]):#需要进行特殊处理
             texture=glGenTextures(1)
             glBindTexture(GL_TEXTURE_2D,texture)
             glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT)
             glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT)
             glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR)
             glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR)
-            aa=character_getter.character2types(ii,size=size,color=color)
+            aa=character_getter.character2types(ii,size=size,color=color,all_row=all_row)
             a=character_getter.get_size()
             if a[0]>qaq:qaq=a[0]
             glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,a[1],a[0],0,GL_RGBA,GL_UNSIGNED_BYTE,aa)
@@ -389,15 +391,15 @@ def print_text_list_freetype(text:list,callback=None,x=0.0,y=0.0,z=0.0,m=1,color
             glBindTexture(GL_TEXTURE_2D,texture)
             glBegin(GL_QUADS)
             glTexCoord2f(1,1)
-            glVertex3f(x+a[1],y,z)
+            glVertex3f(dx+a[1],y,z)
             glTexCoord2f(0,1)
-            glVertex3f(x,y,z)
+            glVertex3f(dx,y,z)
             glTexCoord2f(0,0)
-            glVertex3f(x,y+a[0],z)
+            glVertex3f(dx,y+a[0],z)
             glTexCoord2f(1,0)
-            glVertex3f(x+a[1],y+a[0],z)
+            glVertex3f(dx+a[1],y+a[0],z)
             glEnd()
-            x+=a[1]+spacing
+            dx+=a[1]+spacing
         y+=qaq*m
     glDisable(GL_TEXTURE_2D)
     glDisable(GL_BLEND)
@@ -448,7 +450,7 @@ def debug_2d():
         a[3]=round(player_see_y,2)
         debug_text[1]=a
         #调用文字显示函数显示debug内容，并顺便打印文字出来
-        print_text_list_freetype(debug_text)
+        print_text_list_freetype(debug_text,y=780,m=-1)
 def view_orientations(px,py,callback=None):
     #我还没有学过三角函数，因此如果输入负数也能正常使用，以下代码可以更加简洁。请帮忙改一改哈😀
     if callback is not None:
@@ -726,6 +728,6 @@ glDepthFunc(GL_LESS)
 glutKeyboardFunc(keyboarddown)
 glutKeyboardUpFunc(keyboardup)
 init_info=(glGetDoublev(GL_MODELVIEW_MATRIX),glGetDoublev(GL_PROJECTION_MATRIX))
-guide_init()
-#go_to_world()
+#guide_init()
+go_to_world()
 glutMainLoop()#正式开始运行
