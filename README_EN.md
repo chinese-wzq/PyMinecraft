@@ -31,6 +31,8 @@
 >>>For 64-bit computer, you can download the corresponding whl at https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyopengl such as ""PyOpenGL‑3.1.5‑cp310‑cp310‑win_amd64.whl "" after installing using `pip install .whl`
 >>* pywin32
 >>>you can run "pip install pywin32" directly from the command line to install
+>>* freetype-py
+>>>you can run "pip install freetype-py" directly from the command line to install
 >
 >二、 Second, run the main program
 >>run "main.py".
