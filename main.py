@@ -70,7 +70,7 @@ font="C:/WINDOWS/Fonts/msyh.ttc"    #显示文字时使用的字体,需完整路
 window_height=400    #窗口的长和宽
 window_width=400
 set_chat_list_show_time=50      #聊天框显示多久，2/3时间不变，1/3时间淡化消失
-saves_folder_dir="D:\\桌面\\PyMinecraft\\saves\\"   #指定了存储所有存档的文件夹的位置
+saves_folder_dir=".\\saves\\"   #指定了存储所有存档的文件夹的位置
 save_folder_dir=".\\saves\\example\\"   #指定了存储单个存档的文件夹的位置
 load_all_save=False   #在启动时就加载所有的区块，并且不会执行卸载和加载的程序，可以减少程序卡顿，但在存档过大时需谨慎开启
 
@@ -161,7 +161,7 @@ def read_block(x:int,y:int,z:int):#此模块包装了读取方块的代码,未�
                         if iii>0:aa=iiii
                         else:aa=iiii*-1-1
                         if not block_X-temp2<=a<=block_X+temp2 or not block_Z-temp2<=aa<=block_Z+temp2:
-                            with open(save_folder_dir+str(a)+","+str(aa),"w") as f:json.dump(map[i][ii][iii][iiii],f)
+                            with open(save_folder_dir+str(a)+","+str(aa),"w") as f:json.dump(map[i][ii][iii][iiii],f)#这里有bug哈
                             map[i][ii][iii][iiii]=0
         try:
             if not map[temp3][temp4][temp5][temp6]:raise IndexError
@@ -309,16 +309,20 @@ def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，�
     glBindVertexArray(0)
 class GetCharacterImage:
     def __init__(self,buffer=False):
-        self.__face=Face(font)
-        self.__load=False
+        self.__bitmap=None
+        self.bitmap=None
+        self.size_buffer=None
+        self.rows=None
+        self.face=Face(font)
+        self.load=False
         self.buffer=buffer
         if self.buffer:self.characters_buffer={}
     def get_size(self):
-        if self.__load:
+        if self.load:
             if self.buffer:return self.size_buffer
             return self.rows,self.__bitmap.width
         else:raise Exception("在创建字符前获取大小")
-    def character2types(self,character,size=24,color=(255,255,0),all_row=20,except_character=(",","，","。",".")):
+    def character2types(self,character,size,color,all_row,except_character=(",","，","。",".")):
         """
         :param character: 仅支持单个字符
         :param size: 大小
@@ -327,36 +331,37 @@ class GetCharacterImage:
         :param except_character: 不补行的字符元组
         :return: 可以被opengl读取的格式
         """
+
         if self.buffer and character+str(size) in self.characters_buffer:
             self.size_buffer=self.characters_buffer[character+"_size"]
             return self.characters_buffer[character+str(size)]
-        self.__face.set_char_size(size*64)
-        self.__face.load_char(character)
-        self.__bitmap=self.__face.glyph.bitmap
-        self.__bitmap_buffer=self.__bitmap.buffer
-        self.__load=True
-        self.__bitmap__temp=[]
+        self.face.set_char_size(size*64)
+        self.face.load_char(character)
+        self.__bitmap=self.face.glyph.bitmap
+        bitmap_buffer=self.__bitmap.buffer
+        self.load=True
+        bitmap__temp=[]
         self.bitmap=[]
-        self.__temp=(self.__bitmap.rows,self.__bitmap.width)
+        temp=(self.__bitmap.rows,self.__bitmap.width)
         #补行
-        if len(self.__bitmap_buffer)<all_row*self.__temp[1] and not character in except_character:
+        if len(bitmap_buffer)<all_row*temp[1] and character not in except_character:
             self.rows=all_row
             #按照指定长度切割列表
-            for i in range(self.__temp[0]):self.__bitmap__temp.append(list(self.__bitmap_buffer[i*self.__temp[1]:(i+1)*self.__temp[1]]))
-            self.__on_rows=float2int((all_row-len(self.__bitmap__temp))/2)
-            self.__under_rows=all_row-len(self.__bitmap__temp)-self.__on_rows
-            for _ in range(self.__on_rows):self.__bitmap__temp.insert(0,list([0]*self.__temp[1]))
-            for _ in range(self.__under_rows): self.__bitmap__temp.append(list([0]*self.__temp[1]))
+            for i in range(temp[0]):bitmap__temp.append(list(bitmap_buffer[i*temp[1]:(i+1)*temp[1]]))
+            on_rows=float2int((all_row-len(bitmap__temp))/2)
+            under_rows=all_row-len(bitmap__temp)-on_rows
+            for _ in range(on_rows):bitmap__temp.insert(0,list([0]*temp[1]))
+            for _ in range(under_rows): bitmap__temp.append(list([0]*temp[1]))
             #合并列表
-            debug=len(self.__bitmap__temp)
-            for _ in range(len(self.__bitmap__temp)-1):
-                self.__bitmap__temp[0]+=self.__bitmap__temp[1]
-                self.__bitmap__temp.pop(1)
-            self.__bitmap__temp=self.__bitmap__temp[0]
+            debug=len(bitmap__temp)
+            for _ in range(len(bitmap__temp)-1):
+                bitmap__temp[0]+=bitmap__temp[1]
+                bitmap__temp.pop(1)
+            bitmap__temp=bitmap__temp[0]
         else:
-            self.__bitmap__temp=self.__bitmap_buffer
+            bitmap__temp=bitmap_buffer
             self.rows=self.__bitmap.rows
-        for i in self.__bitmap__temp:self.bitmap+=list(color)+[i]
+        for i in bitmap__temp:self.bitmap+=list(color)+[i]
         if self.buffer:
             self.characters_buffer[character+str(size)]=bytes(self.bitmap)
             self.characters_buffer[character+"_size"]=[self.rows,self.__bitmap.width]
@@ -367,7 +372,7 @@ character_getter=GetCharacterImage()
 class PrintText:
     def __init__(self):
         self.texture_buffer={}
-    def print_freetype(self,text:list,callback=None,x=0,y=0,z=0,m=1,color=(0,0,0),size=24,spacing=2,all_row=20,buffer=True):#采用freetype+texture，更方便自定义，字体更好看！
+    def print_freetype_2d(self,text:list,x=0,y=0,z=0,m=1,color=(0,0,0),size=24,spacing=2,all_row=20,buffer=True):#采用freetype+texture，更方便自定义，字体更好看！
         global character_getter
         glEnable(GL_TEXTURE_2D)
         glEnable(GL_BLEND)
@@ -376,7 +381,13 @@ class PrintText:
         for i in text:
             qaq=0
             dx=x
+            if i=="": i=" "
             for ii in "".join([str(x) for x in i]):#需要进行特殊处理
+                if ii==" ":
+                    a=(all_row,float2int(9/24*size))
+                    if a[0]>qaq: qaq=a[0]
+                    dx+=a[1]+spacing
+                    continue
                 if buffer and ii+str(size)+str(color)+str(all_row) in self.texture_buffer:
                     a=self.texture_buffer[ii+str(size)+str(color)+str(all_row)+"_size"]
                     glBindTexture(GL_TEXTURE_2D,self.texture_buffer[ii+str(size)+str(color)+str(all_row)])
@@ -459,7 +470,7 @@ def debug_2d():
         a[3]=round(player_see_y,2)
         debug_text[1]=a
         #调用文字显示函数显示debug内容，并顺便打印文字出来
-        text_printer.print_freetype(debug_text,y=780,m=-1)
+        text_printer.print_freetype_2d(debug_text,y=780,m=-1)
 def view_orientations(px,py,callback=None):
     #我还没有学过三角函数，因此如果输入负数也能正常使用，以下代码可以更加简洁。请帮忙改一改哈😀
     if callback is not None:
@@ -551,11 +562,12 @@ def world_main_loop():
     #显示指令栏
     if chat_list_show_time!=0 and not input_text:
         chat_list_show_time-=1
-        if set_chat_list_show_time/3*1<chat_list_show_time:print_text_list_freetype([input_buffer]+chat_list,y=0.585,m=-1)
+        if set_chat_list_show_time/3*1<chat_list_show_time:text_printer.print_freetype_2d([input_buffer]+chat_list)
         else:
             a=int(255/(set_chat_list_show_time/3*1)*(set_chat_list_show_time/3*1-(set_chat_list_show_time/3*1)+chat_list_show_time))
-            print_text_list_freetype([input_buffer]+chat_list,y=0.585,m=-1,color=(a,a,a))
-    if input_text:print_text_list_freetype([input_buffer]+chat_list,y=0.585,m=-1)
+            glColor4ub(255,255,255,a)
+            text_printer.print_freetype_2d([input_buffer]+chat_list)
+    if input_text:text_printer.print_freetype_2d([input_buffer]+chat_list)
     #交换缓存，显示画面
     glutSwapBuffers()
 def walk_left(a,b):return a+1.57,b#1.57是实测出来的数据~
@@ -636,7 +648,7 @@ def keyboarddown(button,x,y):
             run_command(input_buffer)
             input_buffer=""
             lock_or_unlock_mouse(False)
-        if button==b'\x1b':
+        elif button==b'\x1b':
             input_text=False
             input_buffer=""
             lock_or_unlock_mouse(False)
@@ -659,6 +671,7 @@ def keyboarddown(button,x,y):
             input_text=True
             lock_or_unlock_mouse(True)
             glutSetCursor(GLUT_CURSOR_LEFT_ARROW)
+            glutPostRedisplay()
             return 0
         keyboard[button]=True
 def keyboardup(button,x,y):
