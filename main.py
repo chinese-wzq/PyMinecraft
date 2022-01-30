@@ -564,8 +564,7 @@ def world_main_loop():
         chat_list_show_time-=1
         if set_chat_list_show_time/3*1<chat_list_show_time:text_printer.print_freetype_2d([input_buffer]+chat_list)
         else:
-            a=int(255/(set_chat_list_show_time/3*1)*(set_chat_list_show_time/3*1-(set_chat_list_show_time/3*1)+chat_list_show_time))
-            glColor4ub(255,255,255,a)
+            glColor4ub(255,255,255,float2int(765/set_chat_list_show_time*chat_list_show_time))
             text_printer.print_freetype_2d([input_buffer]+chat_list)
     if input_text:text_printer.print_freetype_2d([input_buffer]+chat_list)
     #交换缓存，显示画面
