@@ -1,7 +1,7 @@
 <a href="https://996.icu"><img src="https://img.shields.io/badge/link-996.icu-red.svg" alt="996.icu" /></a>
 <img src="https://img.shields.io/badge/高性能-基于PyOpenGL-blue.svg" />
 
-中文 | [Gitee English](https://gitee.com/this_is_the_best_name/PyMinecraft/blob/master/README_EN.md) | [Github English](https://github.com/chinese-wzq/PyMinecraft/blob/master/README_EN.md)
+中文 | [Gitee English](https://gitee.com/chinese-wzq/PyMinecraft/blob/master/README_EN.md) | [Github English](https://github.com/chinese-wzq/PyMinecraft/blob/master/README_EN.md)
 # python&Minecraft,所以叫做"PyMinecraft"
 ![](https://www.wumouren.xyz/wp-content/uploads/2022/01/pyminecraft.png)
 ******************************************************************************
@@ -12,7 +12,7 @@
 # 如果您想鼓励我，给我点个免费的Star吧，实在不行提交几个Pull requests也行啊QAQ
 ##### 你不点Star,我不点Star,程序员明天就自杀
 ******************************************************************************
-## Github已更新"看板"，你可以在那里看到我将来和现在的计划。[空降地址🪂](https://github.com/yi-ge-shuai-qi-de-kai-fa-zhe/PyMinecraft/projects/)
+## Github已更新"看板"，你可以在那里看到我将来和现在的计划。[空降地址🪂](https://github.com/chinese/PyMinecraft/projects/)
 ******************************************************************************
 ### 感谢OpenGL入门教程[写给 python 程序员的 OpenGL 教程](https://blog.csdn.net/xufive/article/details/86565130)
 ******************************************************************************

@@ -1,7 +1,7 @@
 <a href="https://996.icu"><img src="https://img.shields.io/badge/link-996.icu-red.svg" alt="996.icu" /></a>
 <img src="https://img.shields.io/badge/Fast-Based on PyOpenGL-blue.svg" />
 
-[Gitee中文](https://gitee.com/this_is_the_best_name/PyMinecraft/) | [Github中文](https://github.com/chinese-wzq/PyMinecraft/) | English
+[Gitee中文](https://gitee.com/chinese/PyMinecraft/) | [Github中文](https://github.com/chinese-wzq/PyMinecraft/) | English
 # python&Minecraft,so name"PyMinecraft"
 ![](https://www.wumouren.xyz/wp-content/uploads/2022/01/pyminecraft.png)
 ******************************************************************************
@@ -12,7 +12,7 @@
 # If you want to encourage me, give me a free Star,or you can submit a few Pull requests
 ##### You don't give Star, I don't give Star, the programmer will commit suicide tomorrow
 ******************************************************************************
-## Github has updated the "Projects" where you can see my future and current plans. [URL](https://github.com/yi-ge-shuai-qi-de-kai-fa-zhe/PyMinecraft/projects/)
+## Github has updated the "Projects" where you can see my future and current plans. [URL](https://github.com/chinese-wzq/PyMinecraft/projects/)
 ******************************************************************************
 ### Thanks for the OpenGL introductory tutorial [OpenGL tutorial for python programmers](https://blog.csdn.net/xufive/article/details/86565130)
 ******************************************************************************
@@ -21,7 +21,7 @@
 ******************************************************************************
 
 # How to run ：
->一.Install the dependency library
+>1.Install the dependency library
 >>The required libraries for this project:
 >>* PyOpenGL
 >>>64-bit computers cannot be installed directly using `pip install PyOpenGL`, because the default installation is 32-bit, otherwise an error will occur:：OpenGL.error.NullFunctionError: Attempt to call an undefined function”
@@ -34,7 +34,7 @@
 >>* freetype-py
 >>>you can run "pip install freetype-py" directly from the command line to install
 >
->二、 Second, run the main program
+>2.run the main program
 >>run "main.py".
 ******************************************************************************
 # Key Description:
