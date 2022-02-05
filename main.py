@@ -5,7 +5,7 @@
 #本项目（PyMinecraft）GitHub地址：
 #https://github.com/chinese-wzq/PyMinecraft
 #本项目（PyMinecraft）Gitee地址：
-#https://gitee.com/this_is_the_best_name/PyMinecraft
+#https://gitee.com/chinese-wzq/PyMinecraft
 #如果你发现有无良程序员大量盗用本程序代码并且未加声明的
 #欢迎你与他对线，并且将他的作品地址发给我（让我康康啊♂）
 #以下为程序声明以及一些介绍，如果有不符合规范的欢迎提出拉取请求，我不懂开源协议，太多了QAQ
@@ -13,6 +13,11 @@
 #本程序使用字体：JetBrains Mono，字体不同可能会出现程序内的注释排版紊乱！
 
 #本程序部分行较长。为什么？因为觉得这样很爽（莫名）
+#本程序经常出现直接对函数参数赋值的情况。为什么？因为这样写的行更少，而且不用再想新的变量名啦~
+
+#二次开发提示：
+#函数基本没有对参数进行检查，也就是说，如果你的参数用错了，那么程序是会直接崩溃的（甚至可能找不到原因）
+#所以，在使用函数前，请务必查看程序中对函数的1使用方法，并将函数的实现看一遍
 
 ################################################
 #                本作品为兴趣使然                 #
@@ -348,10 +353,10 @@ class GetCharacterImage:
             self.rows=all_row
             #按照指定长度切割列表
             for i in range(temp[0]):bitmap__temp.append(list(bitmap_buffer[i*temp[1]:(i+1)*temp[1]]))
-            on_rows=float2int((all_row-len(bitmap__temp))/2)
-            under_rows=all_row-len(bitmap__temp)-on_rows
-            for _ in range(on_rows):bitmap__temp.insert(0,list([0]*temp[1]))
-            for _ in range(under_rows): bitmap__temp.append(list([0]*temp[1]))
+            up_rows=float2int((all_row-len(bitmap__temp))/2)
+            down_rows=all_row-len(bitmap__temp)-up_rows
+            for _ in range(up_rows):bitmap__temp.insert(0,list([0]*temp[1]))
+            for _ in range(down_rows): bitmap__temp.append(list([0]*temp[1]))
             #合并列表
             debug=len(bitmap__temp)
             for _ in range(len(bitmap__temp)-1):
@@ -372,19 +377,53 @@ character_getter=GetCharacterImage()
 class PrintText:
     def __init__(self):
         self.texture_buffer={}
-    def print_freetype_2d(self,text:list,x=0,y=0,z=0,m=1,color=(0,0,0),size=24,spacing=2,all_row=20,buffer=True):#采用freetype+texture，更方便自定义，字体更好看！
-        global character_getter
+    def default_2d(size,x,y,z,dx,dy,direction,parameter:tuple=(1,1,0)):
+        #parameter参数说明:
+        #第一个参数:是否往x坐标扩展[0不扩展,1正方向扩展]
+        #第二个参数:是否往y坐标扩展[0不扩展,1正方向扩展]
+        #第三个参数:是否往z坐标扩展[0不扩展,1正方向扩展]
+        #本函数只有3种可能的情况：
+        #    Y
+        #
+        #   /|-----⌉
+        #  v0|   ↑ |
+        #  | |     |
+        # ↙| v7------v6 X
+        #  |/   →   /
+        #  v3------v2
+        # Z
+        #以V7为中心点
+        #(0,1)-----------(1,1)
+        #  |               |
+        #  |   TexCoord    |
+        #  |  by 13905069  |
+        #  |               |
+        #(0,0)-----------(1,0)
+        texcoord=
+        #计算起始点，以及朝向
+        if direction=="left":
+            size=(size[1],size[0])
+        if direction=="right":
+            size=(size[1],size[0])
+        if direction=="up":
+            pass
+        if direction=="down":
+            pass
+    def print_text_list(self,text:list,x=0,y=0,z=0,m=1,color=(0,0,0),size=24,spacing=2,all_row=20,buffer=True,vertex_function=default_2d,direction="down",parameter:tuple=None):#采用freetype+texture，更方便自定义，字体更好看！
+        #vertex_function函数为了实现各个方向的文字显示
+        #这个函数各种方向显示的实现真的想了很久
         glEnable(GL_TEXTURE_2D)
         glEnable(GL_BLEND)
         glDisable(GL_DEPTH_TEST)
         glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA)
+        dy=0
         for i in text:
             qaq=0
             dx=x
             if i=="": i=" "
             for ii in "".join([str(x) for x in i]):#需要进行特殊处理
                 if ii==" ":
-                    a=(all_row,float2int(9/24*size))
+                    a=(all_row,float2int(9/24*size))#这里根据一个比较接近空格的数据进行了计算
                     if a[0]>qaq: qaq=a[0]
                     dx+=a[1]+spacing
                     continue
@@ -408,18 +447,9 @@ class PrintText:
                         self.texture_buffer[ii+str(size)+str(color)+str(all_row)+"_size"]=a
                     glBindTexture(GL_TEXTURE_2D,texture)
                 if a[0]>qaq: qaq=a[0]
-                glBegin(GL_QUADS)
-                glTexCoord2f(1,1)
-                glVertex3f(dx+a[1],y,z)
-                glTexCoord2f(0,1)
-                glVertex3f(dx,y,z)
-                glTexCoord2f(0,0)
-                glVertex3f(dx,y+a[0],z)
-                glTexCoord2f(1,0)
-                glVertex3f(dx+a[1],y+a[0],z)
-                glEnd()
+                vertex_function(a,x,y,z,dx,dy,direction,parameter)
                 dx+=a[1]+spacing
-            y+=qaq*m
+            dy+=qaq*m
         glDisable(GL_TEXTURE_2D)
         glDisable(GL_BLEND)
         glEnable(GL_DEPTH_TEST)
@@ -470,7 +500,7 @@ def debug_2d():
         a[3]=round(player_see_y,2)
         debug_text[1]=a
         #调用文字显示函数显示debug内容，并顺便打印文字出来
-        text_printer.print_freetype_2d(debug_text,y=780,m=-1)
+        text_printer.print_text_list(debug_text,y=780,m=-1)
 def view_orientations(px,py,callback=None):
     #我还没有学过三角函数，因此如果输入负数也能正常使用，以下代码可以更加简洁。请帮忙改一改哈😀
     if callback is not None:
@@ -562,11 +592,11 @@ def world_main_loop():
     #显示指令栏
     if chat_list_show_time!=0 and not input_text:
         chat_list_show_time-=1
-        if set_chat_list_show_time/3*1<chat_list_show_time:text_printer.print_freetype_2d([input_buffer]+chat_list)
+        if set_chat_list_show_time/3*1<chat_list_show_time:text_printer.print_text_list([input_buffer]+chat_list)
         else:
             glColor4ub(255,255,255,float2int(765/set_chat_list_show_time*chat_list_show_time))
-            text_printer.print_freetype_2d([input_buffer]+chat_list)
-    if input_text:text_printer.print_freetype_2d([input_buffer]+chat_list)
+            text_printer.print_text_list([input_buffer]+chat_list)
+    if input_text:text_printer.print_text_list([input_buffer]+chat_list)
     #交换缓存，显示画面
     glutSwapBuffers()
 def walk_left(a,b):return a+1.57,b#1.57是实测出来的数据~
@@ -710,7 +740,7 @@ def guide_main_loop():
     gluOrtho2D(0,window_height*2,0,window_width*2)
     glMatrixMode(GL_MODELVIEW)
     glLoadIdentity()
-    PrintText.print_text_list_freetype(["PyMinecraft+-"],x=0,y=400,size=96)
+    text_printer.print_text_list(text=["PyMinecraft+-"],x=0,y=400,size=96)
     glutSwapBuffers()
 def guide_init():#处理情况：游戏退出到主界面，其他界面退出到主界面
     glutSetCursor(GLUT_CURSOR_LEFT_ARROW)

@@ -39,4 +39,7 @@
 ******************************************************************************
 # Key Description:
 * Press ~ to open debug mode (including coordinates and axes, etc.)
+******************************************************************************
+# Want to submit a PR?Check here:[URL](https://github.com/chinese-wzq/PyMinecraft/projects/6)
+******************************************************************************
 # Never forget Minecraft, it's only our world.
