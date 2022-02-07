@@ -377,39 +377,43 @@ character_getter=GetCharacterImage()
 class PrintText:
     def __init__(self):
         self.texture_buffer={}
-    def default_2d(size,x,y,z,dx,dy,direction,parameter:tuple=(1,1,0)):
+    def default_2d(size,x,y,z,dx,dy,direction="up",parameter:tuple=(1,1,0,1,1)):
         #parameter参数说明:
         #第一个参数:是否往x坐标扩展[0不扩展,1正方向扩展]
         #第二个参数:是否往y坐标扩展[0不扩展,1正方向扩展]
         #第三个参数:是否往z坐标扩展[0不扩展,1正方向扩展]
+        #第四个参数:位于基线下或上[1朝上，-1朝下]
+        #第五个参数:位于基线左或右[1朝右，-1朝左]
         #本函数只有3种可能的情况：
-        #    Y
         #
-        #   /|-----⌉
-        #  v0|   ↑ |
-        #  | |     |
-        # ↙| v7------v6 X
-        #  |/   →   /
-        #  v3------v2
-        # Z
+        #         Y
+        #        /|-----⌉
+        #       v0|   ↑ |    1,1,0
+        #       | |     |
+        # 0,1,1↙| v7------v6 X
+        #       |/   →   /
+        #        v3------v2
+        #       Z   1,0,1
         #以V7为中心点
-        #(0,1)-----------(1,1)
+        #(0,1)-→---------(1,1)
         #  |               |
-        #  |   TexCoord    |
-        #  |  by 13905069  |
+        #  |   TexCoord    ↓
+        #  ↑  by 13905069  |
         #  |               |
-        #(0,0)-----------(1,0)
-        texcoord=
+        #(0,0)---------←-(1,0)
         #计算起始点，以及朝向
-        if direction=="left":
-            size=(size[1],size[0])
-        if direction=="right":
-            size=(size[1],size[0])
-        if direction=="up":
-            pass
-        if direction=="down":
-            pass
-    def print_text_list(self,text:list,x=0,y=0,z=0,m=1,color=(0,0,0),size=24,spacing=2,all_row=20,buffer=True,vertex_function=default_2d,direction="down",parameter:tuple=None):#采用freetype+texture，更方便自定义，字体更好看！
+        if direction=="up":textcoord=(1,0,1,1,0,1,0,0)
+        if direction=="down":textcoord=(0,1,0,0,1,0,1,1)
+        if parameter[:3]==(1,1,0):
+            glVertex3f(x+dx*parameter[3],y+(dy+size[0])*parameter[3],z)
+            glTexCoord2f(textcoord[0],textcoord[1])
+            glVertex3f(x+(dx+size[1])*parameter[4],y+(dy+size[0])*parameter[3],z)
+            glTexCoord2f(textcoord[2],textcoord[3])
+            glVertex3f(x+(dx+size[1])*parameter[4],y+dy*parameter[4],z)
+            glTexCoord2f(textcoord[4],textcoord[5])
+            glVertex3f(x+dx*parameter[3],y+dy*parameter[4],z)
+            glTexCoord2f(textcoord[6],textcoord[7])
+    def print_text_list(self,text:list,x=0,y=0,z=0,m=1,color=(0,0,0),size=24,spacing=2,all_row=20,buffer=True,vertex_function=default_2d,direction="down",parameter:tuple=(1,1,0,1,1)):#采用freetype+texture，更方便自定义，字体更好看！
         #vertex_function函数为了实现各个方向的文字显示
         #这个函数各种方向显示的实现真的想了很久
         glEnable(GL_TEXTURE_2D)
@@ -447,7 +451,9 @@ class PrintText:
                         self.texture_buffer[ii+str(size)+str(color)+str(all_row)+"_size"]=a
                     glBindTexture(GL_TEXTURE_2D,texture)
                 if a[0]>qaq: qaq=a[0]
+                glBegin(GL_QUADS)
                 vertex_function(a,x,y,z,dx,dy,direction,parameter)
+                glEnd()
                 dx+=a[1]+spacing
             dy+=qaq*m
         glDisable(GL_TEXTURE_2D)
@@ -740,7 +746,7 @@ def guide_main_loop():
     gluOrtho2D(0,window_height*2,0,window_width*2)
     glMatrixMode(GL_MODELVIEW)
     glLoadIdentity()
-    text_printer.print_text_list(text=["PyMinecraft+-"],x=0,y=400,size=96)
+    text_printer.print_text_list(text=["PyMinecraft +-(*^_^*)"],x=0,y=400,size=96)
     glutSwapBuffers()
 def guide_init():#处理情况：游戏退出到主界面，其他界面退出到主界面
     glutSetCursor(GLUT_CURSOR_LEFT_ARROW)
@@ -779,6 +785,7 @@ glDepthFunc(GL_LESS)
 glutKeyboardFunc(keyboarddown)
 glutKeyboardUpFunc(keyboardup)
 init_info=(glGetDoublev(GL_MODELVIEW_MATRIX),glGetDoublev(GL_PROJECTION_MATRIX))
-#guide_init()
-go_to_world()
+#这里二选一注释，注释第一个进入世界（成熟），注释第二个进入界面（未成熟）
+guide_init()
+#go_to_world()
 glutMainLoop()#正式开始运行
