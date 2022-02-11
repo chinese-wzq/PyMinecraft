@@ -62,6 +62,7 @@ from PIL import ImageDraw
 from freetype import *
 
 #允许用户自定义的变量,已将大部分变量做好注释
+from mesh_raycast import direction
 
 mouse_move_speed=0.01 #鼠标移动距离
 player_move_speed=0.1
@@ -375,8 +376,7 @@ class GetCharacterImage:
         return bytes(self.bitmap)
 character_getter=GetCharacterImage()
 class PrintText:
-    def __init__(self):
-        self.texture_buffer={}
+    def __init__(self):self.texture_buffer={}
     def default_2d(size,x,y,z,dx,dy,direction="up",parameter:tuple=(1,1,0,1,1)):
         #parameter参数说明:
         #第一个参数:是否往x坐标扩展[0不扩展,1正方向扩展]
@@ -402,18 +402,28 @@ class PrintText:
         #  |               |
         #(0,0)---------←-(1,0)
         #计算起始点，以及朝向
-        if direction=="up":textcoord=(1,0,1,1,0,1,0,0)
-        if direction=="down":textcoord=(0,1,0,0,1,0,1,1)
+        if direction=="up":texcoord=(1,0,1,1,0,1,0,0)
+        if direction=="down":texcoord=(1,1,1,0,0,0,0,1)
         if parameter[:3]==(1,1,0):
-            glVertex3f(x+dx*parameter[3],y+(dy+size[0])*parameter[3],z)
-            glTexCoord2f(textcoord[0],textcoord[1])
+            glVertex3f(x+dx*parameter[4],y+(dy+size[0])*parameter[3],z)
+            glTexCoord2f(texcoord[0],texcoord[1])
             glVertex3f(x+(dx+size[1])*parameter[4],y+(dy+size[0])*parameter[3],z)
-            glTexCoord2f(textcoord[2],textcoord[3])
-            glVertex3f(x+(dx+size[1])*parameter[4],y+dy*parameter[4],z)
-            glTexCoord2f(textcoord[4],textcoord[5])
-            glVertex3f(x+dx*parameter[3],y+dy*parameter[4],z)
-            glTexCoord2f(textcoord[6],textcoord[7])
-    def print_text_list(self,text:list,x=0,y=0,z=0,m=1,color=(0,0,0),size=24,spacing=2,all_row=20,buffer=True,vertex_function=default_2d,direction="down",parameter:tuple=(1,1,0,1,1)):#采用freetype+texture，更方便自定义，字体更好看！
+            glTexCoord2f(texcoord[2],texcoord[3])
+            glVertex3f(x+(dx+size[1])*parameter[4],y+dy*parameter[3],z)
+            glTexCoord2f(texcoord[4],texcoord[5])
+            glVertex3f(x+dx*parameter[4],y+dy*parameter[3],z)
+            glTexCoord2f(texcoord[6],texcoord[7])
+        if parameter[:3]==(0,1,1):
+            glVertex3f(x,y+dx*parameter[4],z+(dy+size[0])*parameter[3])
+            glTexCoord2f(texcoord[0],texcoord[1])
+            glVertex3f(x,y+(dx+size[1])*parameter[4],z+(dy+size[0])*parameter[3])
+            glTexCoord2f(texcoord[2],texcoord[3])
+            glVertex3f(x,y+(dx+size[1])*parameter[4],z+dy*parameter[3])
+            glTexCoord2f(texcoord[4],texcoord[5])
+            glVertex3f(x,y+dx*parameter[4],z+dy*parameter[3])
+            glTexCoord2f(texcoord[6],texcoord[7])
+        #这里还有两种情况等待编写！
+    def print_text_list(self,text:list,x=0,y=0,z=0,m=1,color=(0,0,0),size=24,spacing=2,all_row=20,buffer=True,direction="up",parameter:tuple=(1,1,0,1,1),row_small=None):#采用freetype+texture，更方便自定义，字体更好看！
         #vertex_function函数为了实现各个方向的文字显示
         #这个函数各种方向显示的实现真的想了很久
         glEnable(GL_TEXTURE_2D)
@@ -428,6 +438,7 @@ class PrintText:
             for ii in "".join([str(x) for x in i]):#需要进行特殊处理
                 if ii==" ":
                     a=(all_row,float2int(9/24*size))#这里根据一个比较接近空格的数据进行了计算
+                    if row_small is not None: a=(row_small,a[1]*(a[0]/row_small))
                     if a[0]>qaq: qaq=a[0]
                     dx+=a[1]+spacing
                     continue
@@ -450,9 +461,10 @@ class PrintText:
                         self.texture_buffer[ii+str(size)+str(color)+str(all_row)]=texture
                         self.texture_buffer[ii+str(size)+str(color)+str(all_row)+"_size"]=a
                     glBindTexture(GL_TEXTURE_2D,texture)
+                if row_small is not None: a=(row_small,a[1]*(row_small/a[0]))
                 if a[0]>qaq: qaq=a[0]
                 glBegin(GL_QUADS)
-                vertex_function(a,x,y,z,dx,dy,direction,parameter)
+                PrintText.default_2d(a,x,y,z,dx,dy,direction,parameter)#为什么用函数引出来？因为工程量实在太大，够单独开一个函数讲解了
                 glEnd()
                 dx+=a[1]+spacing
             dy+=qaq*m
@@ -578,6 +590,7 @@ def world_main_loop():
             glVertex3f(a[b[i*2+1]*3],a[b[i*2+1]*3+1],a[b[i*2+1]*3+2])
         glEnd()
     debug_3d()
+    text_printer.print_text_list(text=["Fu"],size=96,parameter=(1,1,0,1,1),direction="down",row_small=5)
     #进入2D状态
     glMatrixMode(GL_PROJECTION)
     glLoadIdentity()
@@ -738,15 +751,13 @@ def guide_button_event_init():
     global guide_buttons
     guide_buttons=[]
 def guide_main_loop():
-    glClear(GL_COLOR_BUFFER_BIT)
-    # glColor3f(1.0,0.0,0.0)
-    # glRectf(-0.5,-0.5,0.5,0.5)
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     glMatrixMode(GL_PROJECTION)
     glLoadIdentity()
     gluOrtho2D(0,window_height*2,0,window_width*2)
     glMatrixMode(GL_MODELVIEW)
     glLoadIdentity()
-    text_printer.print_text_list(text=["PyMinecraft +-(*^_^*)"],x=0,y=400,size=96)
+    text_printer.print_text_list(text=["P"],x=0,y=400,size=96,row_small=10)
     glutSwapBuffers()
 def guide_init():#处理情况：游戏退出到主界面，其他界面退出到主界面
     glutSetCursor(GLUT_CURSOR_LEFT_ARROW)
@@ -786,6 +797,6 @@ glutKeyboardFunc(keyboarddown)
 glutKeyboardUpFunc(keyboardup)
 init_info=(glGetDoublev(GL_MODELVIEW_MATRIX),glGetDoublev(GL_PROJECTION_MATRIX))
 #这里二选一注释，注释第一个进入世界（成熟），注释第二个进入界面（未成熟）
-guide_init()
-#go_to_world()
+#guide_init()
+go_to_world()
 glutMainLoop()#正式开始运行
