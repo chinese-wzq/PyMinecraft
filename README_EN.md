@@ -1,5 +1,5 @@
 <a href="https://996.icu"><img src="https://img.shields.io/badge/link-996.icu-red.svg" alt="996.icu" /></a>
-<img src="https://img.shields.io/badge/Fast-Based on PyOpenGL-blue.svg" />
+<img src="https://img.shields.io/badge/Fast-Based on PyOpenGL,not PyGame-blue.svg" />
 
 [Gitee中文](https://gitee.com/chinese/PyMinecraft/) | [Github中文](https://github.com/chinese-wzq/PyMinecraft/) | English
 # python&Minecraft,so name"PyMinecraft"

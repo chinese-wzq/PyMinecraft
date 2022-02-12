@@ -800,3 +800,11 @@ init_info=(glGetDoublev(GL_MODELVIEW_MATRIX),glGetDoublev(GL_PROJECTION_MATRIX))
 #guide_init()
 go_to_world()
 glutMainLoop()#正式开始运行
+#　    ☆ *　. 　☆
+#　　  . ∧＿∧ ∩　* ☆
+#* ☆ ( ・∀・)/ .
+#　. ⊂　　  ノ* ☆
+#☆ * (つ ノ .☆
+#　　  (ノ
+#代码破800行啦！
+#我推送了88次代码！
