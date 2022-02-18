@@ -61,10 +61,10 @@ from PIL import ImageDraw
 #导入字体点阵获取相关库
 from freetype import *
 #导入numba.jit编译函数为机器码，需要牺牲python部分特性才可翻译
-from numba import jit
-from numba.extending import overload
+#from numba import jit
+#from numba.extending import overload
 #导入性能测试函数（仅供开发使用）
-import timeit
+#import timeit
 
 #允许用户自定义的变量,已将大部分变量做好注释
 
@@ -437,7 +437,15 @@ class PrintText:
             glTexCoord2f(texcoord[4],texcoord[5])
             glVertex3f(x,y+dx*parameter[4],z+dy*parameter[3])
             glTexCoord2f(texcoord[6],texcoord[7])
-        #这里还有两种情况等待编写！
+        if parameter[:3]==(1,0,1):
+            glVertex3f(x+(dy+size[0])*parameter[3],y,z+dx*parameter[4])
+            glTexCoord2f(texcoord[0],texcoord[1])
+            glVertex3f(x+(dy+size[0])*parameter[3],y,z+(dx+size[1])*parameter[4])
+            glTexCoord2f(texcoord[2],texcoord[3])
+            glVertex3f(x+dy*parameter[3],y,z+(dx+size[1])*parameter[4])
+            glTexCoord2f(texcoord[4],texcoord[5])
+            glVertex3f(x+dy*parameter[3],y,z+dx*parameter[4])
+            glTexCoord2f(texcoord[6],texcoord[7])
     def print_text_list(self,text:list,x=0,y=0,z=0,m=1,color=(0,0,0),size=24,spacing=2,all_row=20,buffer=True,direction="up",parameter:tuple=(1,1,0,1,1),row_small=None):#采用freetype+texture，更方便自定义，字体更好看！
         #vertex_function函数为了实现各个方向的文字显示
         #这个函数各种方向显示的实现真的想了很久
