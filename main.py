@@ -60,9 +60,7 @@ from PIL import Image
 from PIL import ImageDraw
 #导入字体点阵获取相关库
 from freetype import *
-#导入numba.jit编译函数为机器码，需要牺牲python部分特性才可翻译
-#from numba import jit
-#from numba.extending import overload
+
 #导入性能测试函数（仅供开发使用）
 #import timeit
 
@@ -80,12 +78,12 @@ font="C:/WINDOWS/Fonts/msyh.ttc"    #显示文字时使用的字体,需完整路
 window_height=400    #窗口的长和宽
 window_width=400
 set_chat_list_show_time=100      #聊天框显示多久，2/3时间不变，1/3时间淡化消失
-saves_folder_dir=".\\saves\\"   #指定了存储所有存档的文件夹的位置
-save_folder_dir=".\\saves\\example\\"   #指定了存储单个存档的文件夹的位置
+main_folder_dir=os.path.join(".",".PyMinecraft")        #指定主目录位置(默认为.//PyMincraft)
+save_name="example"         #指定存档名称(位于.//PyMinecraft//saves//下)
 load_all_save=False   #在启动时就加载所有的区块，并且不会执行卸载和加载的程序，可以减少程序卡顿，但在存档过大时需谨慎开启
 
 #用户不应该动的变量
-save_folder_files_list=os.listdir(save_folder_dir)
+save_folder_files_list=os.listdir(os.path.join(main_folder_dir,"saves",save_name))
 player_see_x=0
 player_see_y=0
 lock_muose=False
@@ -107,6 +105,7 @@ input_buffer=""
 chat_list=[]
 chat_list_show_time=0
 guide_buttons=[]
+
 def create_block_texture(block_type:int):#没错，方块材质直接现画！
     block=Image.new("RGB",(100,100),"white")
     draw=ImageDraw.Draw(block)
@@ -132,12 +131,9 @@ def write_list(wait_write_list:list,write:str,point:list,fill:any=0,fill_callbac
 if load_all_save:
     for i in save_folder_files_list:
         a,b=i.split(",")
-        a=int(a)
-        b=int(b)
-        with open(save_folder_dir+str(a)+','+str(b)) as f: map=write_list(map,json.load(f),[a>=0,a+int(a<0),b>=0,b+int(b<0)],fill=[])
-# @overload(open)
-#我真的憋不住了。我这里改了这么久就是为了试试numba，结果跑性能测试一看我去更慢。WDNMD我不搞了（不过上面一行的注释删掉可以体验一下）
-def read_block_jit(x:int,y:int,z:int,map:list):#此模块包装了读取方块的代码,未来可能也会把世界生成的代码放里边！
+        a,b=int(a),int(b)
+        with open(os.path.join(main_folder_dir,"saves",save_name,str(a)+','+str(b))) as f: map=write_list(map,json.load(f),[a>=0,a+int(a<0),b>=0,b+int(b<0)],fill=[])
+def read_block(x:int,y:int,z:int):#此模块包装了读取方块的代码,未来可能也会把世界生成的代码放里边！
     #以下为基本原理：
     #1.先计算输入坐标位于的区块位置
     #2.读取区块文件，并将区块放入map进行缓存
@@ -150,6 +146,7 @@ def read_block_jit(x:int,y:int,z:int,map:list):#此模块包装了读取方块�
     #                              第一层：Y
     #                              第二层：X
     #                              第二层：Z
+    global map
     #第一步
     i=1
     ii=1
@@ -172,19 +169,15 @@ def read_block_jit(x:int,y:int,z:int,map:list):#此模块包装了读取方块�
                         if iii>0:aa=iiii
                         else:aa=iiii*-1-1
                         if not block_X-temp2<=a<=block_X+temp2 or not block_Z-temp2<=aa<=block_Z+temp2:
-                            f=open(save_folder_dir+str(a)+","+str(aa),"w")
-                            json.dump(map[i][ii][iii][iiii],f)
-                            f.close()
+                            with open(os.path.join(main_folder_dir,"saves",save_name,+str(a)+","+str(aa)),"w") as f:json.dump(map[i][ii][iii][iiii],f)#这里有bug哈
                             map[i][ii][iii][iiii]=0
         try:
             if not map[temp3][temp4][temp5][temp6]:raise IndexError
         except IndexError:
             if str(block_X)+','+str(block_Z) in save_folder_files_list:
-                a=open(save_folder_dir+str(block_X)+','+str(block_Z))
-                map=write_list(map,json.load(a),[temp3,temp4,temp5,temp6],[])
-                a.close()
+                with open(os.path.join(main_folder_dir,"saves",save_name,str(block_X)+','+str(block_Z))) as a:map=write_list(map,json.load(a),[temp3,temp4,temp5,temp6],[])
             else:
-                return 0,map
+                return 0
     #第三步
     #    v4----- v5
     #   /|      /|
@@ -196,14 +189,8 @@ def read_block_jit(x:int,y:int,z:int,map:list):#此模块包装了读取方块�
     #目标就是先求出区块中心，随后求出V3这个点的位置，最后换算坐标进入区块坐标系
     center_block_x=(block_X-0.5)*block_size
     center_block_z=(block_Z-0.5)*block_size
-    try:return map[temp3][temp4][temp5][temp6][y][float2int(x-center_block_x)][float2int(z-center_block_z)],map
-    except IndexError:return 0,map
-def read_block(x:int,y:int,z:int):
-    #用于封装使用了jit的方块读取函数。
-    #因为使用了jit，导致不能直接修改全局变量，故这里专门封装了一个函数实现保存修改后的map
-    global map
-    result,map=read_block_jit(x,y,z,map)
-    return result
+    try:return map[temp3][temp4][temp5][temp6][y][float2int(x-center_block_x)][float2int(z-center_block_z)]
+    except IndexError:return 0
 def write_block_fill_callback(a,b):
     if a==len(b)-1:return 0
     else:return []
@@ -418,7 +405,8 @@ class PrintText:
         #(0,0)---------←-(1,0)
         #计算起始点，以及朝向
         if direction=="up":texcoord=(1,0,1,1,0,1,0,0)
-        if direction=="down":texcoord=(1,1,1,0,0,0,0,1)
+        elif direction=="down":texcoord=(1,1,1,0,0,0,0,1)
+        else:raise ValueError("未知的direction参数内容！")
         if parameter[:3]==(1,1,0):
             glVertex3f(x+dx*parameter[4],y+(dy+size[0])*parameter[3],z)
             glTexCoord2f(texcoord[0],texcoord[1])
@@ -813,64 +801,12 @@ def init():
     #完成其余的初始化
     glutReshapeWindow(window_height*2,window_width*2)
     glClearColor(0.0,174.0,238.0,238.0)
-def read_block_text(x:int,y:int,z:int):#此模块包装了读取方块的代码,未来可能也会把世界生成的代码放里边！
-    #以下为基本原理：
-    #1.先计算输入坐标位于的区块位置
-    #2.读取区块文件，并将区块放入map进行缓存
-    #                               ↑
-    #将区块放入缓存中，并卸载超出缓存区域的区块，关于map的区块索引结构结构：（存在负数，每层需要两层，一层正一层负）
-    #                                                         第一层：区块的X
-    #                                                         第二层：区块的Z
-    #                                                         此索引方法虽然会出现许多空的项，但是比全部载入对内存的消耗少得多了
-    #3.从区块里读取指定位置方块,索引方法：（不存在负数情况），随后返回指定位置方块
-    #                              第一层：Y
-    #                              第二层：X
-    #                              第二层：Z
-    global map
-    #第一步
-    i=1
-    ii=1
-    if x<0:i=-1
-    if z<0:ii=-1
-    block_X=float2int((x+temp1*i)/block_size)
-    block_Z=float2int((z+temp1*ii)/block_size)
-    #第二步，这里决定先卸载再载入
-    temp3=block_X>=0
-    temp4=block_X+int(block_X<0)
-    temp5=block_Z>=0
-    temp6=block_Z+int(block_Z<0)
-    if not load_all_save:
-        for i in range(len(map)):
-            for ii in range(len(map[i])):
-                for iii in range(len(map[i][ii])):
-                    for iiii in range(len(map[i][ii][iii])):
-                        if i>0:a=ii
-                        else:a=ii*-1-1
-                        if iii>0:aa=iiii
-                        else:aa=iiii*-1-1
-                        if not block_X-temp2<=a<=block_X+temp2 or not block_Z-temp2<=aa<=block_Z+temp2:
-                            with open(save_folder_dir+str(a)+","+str(aa),"w") as f:json.dump(map[i][ii][iii][iiii],f)#这里有bug哈
-                            map[i][ii][iii][iiii]=0
-        try:
-            if not map[temp3][temp4][temp5][temp6]:raise IndexError
-        except IndexError:
-            if str(block_X)+','+str(block_Z) in save_folder_files_list:
-                with open(save_folder_dir+str(block_X)+','+str(block_Z)) as a:map=write_list(map,json.load(a),[temp3,temp4,temp5,temp6],[])
-            else:
-                return 0
-    #第三步
-    #    v4----- v5
-    #   /|      /|
-    #  v0------v1|
-    #  | |↗    | |
-    #  | v7----|-v6
-    #  |/      |/
-    #  v3------v2→
-    #目标就是先求出区块中心，随后求出V3这个点的位置，最后换算坐标进入区块坐标系
-    center_block_x=(block_X-0.5)*block_size
-    center_block_z=(block_Z-0.5)*block_size
-    try:return map[temp3][temp4][temp5][temp6][y][float2int(x-center_block_x)][float2int(z-center_block_z)]
-    except IndexError:return 0
+
+#可直接覆盖函数实现自己的功能
+for i in os.listdir(os.path.join(main_folder_dir,"mods")):
+    if i.split(".")[-2:]==["enable","py"]:
+        with open(os.path.join(main_folder_dir,"mods",i),encoding='UTF-8') as f: exec(f.read())
+
 init()
 glEnable(GL_DEPTH_TEST)
 glDepthFunc(GL_LESS)

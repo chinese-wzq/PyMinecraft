@@ -33,6 +33,8 @@
 >>>you can run "pip install pywin32" directly from the command line to install
 >>* freetype-py
 >>>you can run "pip install freetype-py" directly from the command line to install
+>>* numba(optional)
+>>>you can run "pip install numba" directly from the command line to install
 >
 >2.run the main program
 >>run "main.py".

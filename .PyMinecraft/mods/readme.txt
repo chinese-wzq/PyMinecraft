@@ -1,0 +1,10 @@
+该目录下的py文件会在主程序函数全部注册后选择性执行（且只执行一次），用于覆盖函数实现自己的功能
+具体选择方式：
+    文件全名为*.enable.py（包含.）将会被执行
+    其他的全都不执行
+    会被执行的文件名示例：
+        example.enable.py
+        fuck.you.enable.py
+    不会被执行的文件名示例：
+        example.disable.py
+        fuck.you.enable.disable.py

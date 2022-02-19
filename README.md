@@ -33,6 +33,8 @@
 >>>你可以直接在命令行中运行"pip install pywin32"安装
 >>* freetype-py
 >>>你可以直接在命令行中运行"pip install freetype-py"安装
+>>* numba（可选）
+>>>你可以直接在命令行中运行"pip install numba"安装
 >
 >二、 运行主程序
 >>运行"main.py"即可。
