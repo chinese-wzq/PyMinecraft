@@ -1,4 +1,4 @@
-# coding=utf-8
+# -*- coding: utf-8 -*-
 # Always believe,always hope.
 
 #感谢您的遇见！
@@ -17,7 +17,7 @@
 
 #二次开发提示：
 #函数基本没有对参数进行检查，也就是说，如果你的参数用错了，那么程序是会直接崩溃的（甚至可能找不到原因）
-#所以，在使用函数前，请务必查看程序中对函数的1使用方法，并将函数的实现看一遍
+#所以，在使用函数前，请务必查看程序中对函数的使用方法，并将函数的实现看一遍
 
 ################################################
 #                本作品为兴趣使然                 #
@@ -30,37 +30,30 @@
 #    我也只是一个小小的初二生，很多数学计算略为粗糙     #
 #            因此希望您帮助改进我的算法             #
 ################################################
-#            本游戏是开源的，所有人可编辑           #
-#           因此，我才能尽量保证代码的安全性         #
-#          本游戏从设计之初就采用了超多函数设置       #
-#          这使得游戏的大部分函数具有参考价值        #
-#             如果本游戏的某些函数帮到了您          #
-#        欢迎您在项目地址上点一个免费的Star（星）     #
-#             你的星会成为我Coding的动力           #
-################################################
 
 #################感谢与你相遇！###################
 
 #导入OpenGL相关库
-import numpy
 from OpenGL.GL import *
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
-#导入字体显示相关库(即将废弃)
-from OpenGL.WGL import *
-import win32ui
 #导入三角函数相关库
 import math
 #导入窗口相关库
 import win32con,win32gui
 #导入区块读取相关库
-import json,os,copy
+import os
 #导入方块贴图生成库
 from PIL import Image
 from PIL import ImageDraw
 #导入字体点阵获取相关库
 from freetype import *
-
+#导入numba性能提升
+from numba import njit
+from numba.types import UniTuple,DictType,int64
+from numba.typed import Dict
+#导入pythonn程序员必备numpy
+import numpy as np
 #导入性能测试函数（仅供开发使用）
 #import timeit
 
@@ -88,15 +81,15 @@ player_see_x=0
 player_see_y=0
 lock_muose=False
 debug=False
-map=[[[[[[[0]]]]]]]
+blocks=Dict.empty(key_type=UniTuple(int64, 2),value_type=DictType(UniTuple(int64,3),int64))
+#新手入门numba备注：   ↑             ↑               ↑         ↑
+#                键的类型    意为有两个int64项的元组 值的类型  意为：键是由3个int64项组成的元组，值是int64的字典
+block_temp=Dict.empty(key_type=UniTuple(int64, 3), value_type=int64)
 block_texture=[]
 debug_text=[['XYZ:',0.0,',',0.0,',',0.0],
             ['EYE:',0,',',0],]
 block_size=11   #必须为单数
 buffer_block_size=15   #也必须为单数
-temp1=block_size/2#区块加载的缓存变量
-temp2=(buffer_block_size-1)/2
-temp7=(block_size-1)/-2
 keyboard={}
 for i in [b'\x1b',b'`',b'w',b's',b'a',b'd',b" "]:keyboard[i]=False
 mouse={0:1,2:1}
@@ -105,6 +98,44 @@ input_buffer=""
 chat_list=[]
 chat_list_show_time=0
 guide_buttons=[]
+
+class FileBuffer:
+    def __init__(self):self.file={}
+    def read(self,path:str,really:bool=False):
+        if path not in self.file or really:
+            with open(path,"r") as f:self.file[path]=f.read()
+        return self.file[path]
+    def write(self,path:str,content:str,really:bool=False):
+        if really:
+            with open(path,"w") as f:f.write(content)
+        self.file[path]=content
+    def save(self):
+        for i,ii in self.file:
+            with open(i,"w") as f:f.write(ii)
+file_buffer_reader=FileBuffer()
+class SmartPlan:
+    def __init__(self):self.plan=[]
+    def add(self,frequency,callback,priority):
+        """
+        :param frequency: 频率，每执行一次计时函数算作一个单位时间，如为1则是每次都执行，2为第2次执行一次
+        :param callback: 时机到时执行的函数
+        :param priority: 优先级。函数从高优先级一直执行到低优先级直到完毕。显示函数应放在最低优先级
+        :return: 无
+        """
+        for i in range(len(self.plan)):
+            if self.plan[i][0]==priority:
+                self.plan[i]+=[callback,frequen,0]
+                return 0
+        self.plan+=[priority[callback,frequen,0]]
+        def a(item):return item[0]
+        self.plan.sort(key=a,reverse=True)
+    def clock(self):
+        for i in range(len(self.plan)):
+            for ii in range(1,len(self.plan[i])-1):
+                if self.plan[i][ii][2]+1==self.plan[i][ii][1]:
+                    self.plan[i][ii][2]=0
+                    self.plan[i][ii][0]()
+                else:self.plan[i][ii][2]+=1
 
 def create_block_texture(block_type:int):#没错，方块材质直接现画！
     block=Image.new("RGB",(100,100),"white")
@@ -116,100 +147,37 @@ def create_block_texture(block_type:int):#没错，方块材质直接现画！
         for y in range(100):all_pixels+=list(pixels[x,y])
     return bytes(all_pixels)
 block_texture.append(create_block_texture(1))
-def float2int(i):return int(str(i).split(".")[0])
-def write_list(wait_write_list:list,write:str,point:list,fill:any=0,fill_callback=None):#代码再不重写就TM要爆炸了
-    really_point=wait_write_list
-    for i in range(len(point)):
-        while point[i]>len(really_point)-1:
-            if fill_callback is None:really_point.append(copy.copy(fill))
-            else:really_point.append(fill_callback(i,point))
-        if i==len(point)-1:
-            really_point[point[i]]=write
-            return wait_write_list
-        really_point=really_point[point[i]]
+@njit
+def float2int(i):
+    if i>=0:return math.floor(i)
+    if i<0:return math.ceil(i)
 #如果设置为加载全部区块，则进行一些操作
 if load_all_save:
     for i in save_folder_files_list:
         a,b=i.split(",")
         a,b=int(a),int(b)
         with open(os.path.join(main_folder_dir,"saves",save_name,str(a)+','+str(b))) as f: map=write_list(map,json.load(f),[a>=0,a+int(a<0),b>=0,b+int(b<0)],fill=[])
-def read_block(x:int,y:int,z:int):#此模块包装了读取方块的代码,未来可能也会把世界生成的代码放里边！
-    #以下为基本原理：
-    #1.先计算输入坐标位于的区块位置
-    #2.读取区块文件，并将区块放入map进行缓存
-    #                               ↑
-    #将区块放入缓存中，并卸载超出缓存区域的区块，关于map的区块索引结构结构：（存在负数，每层需要两层，一层正一层负）
-    #                                                         第一层：区块的X
-    #                                                         第二层：区块的Z
-    #                                                         此索引方法虽然会出现许多空的项，但是比全部载入对内存的消耗少得多了
-    #3.从区块里读取指定位置方块,索引方法：（不存在负数情况），随后返回指定位置方块
-    #                              第一层：Y
-    #                              第二层：X
-    #                              第二层：Z
-    global map
-    #第一步
-    i=1
-    ii=1
-    if x<0:i=-1
-    if z<0:ii=-1
-    block_X=float2int((x+temp1*i)/block_size)
-    block_Z=float2int((z+temp1*ii)/block_size)
-    #第二步，这里决定先卸载再载入
-    temp3=block_X>=0
-    temp4=block_X+int(block_X<0)
-    temp5=block_Z>=0
-    temp6=block_Z+int(block_Z<0)
-    if not load_all_save:
-        for i in range(len(map)):
-            for ii in range(len(map[i])):
-                for iii in range(len(map[i][ii])):
-                    for iiii in range(len(map[i][ii][iii])):
-                        if i>0:a=ii
-                        else:a=ii*-1-1
-                        if iii>0:aa=iiii
-                        else:aa=iiii*-1-1
-                        if not block_X-temp2<=a<=block_X+temp2 or not block_Z-temp2<=aa<=block_Z+temp2:
-                            with open(os.path.join(main_folder_dir,"saves",save_name,+str(a)+","+str(aa)),"w") as f:json.dump(map[i][ii][iii][iiii],f)#这里有bug哈
-                            map[i][ii][iii][iiii]=0
-        try:
-            if not map[temp3][temp4][temp5][temp6]:raise IndexError
-        except IndexError:
-            if str(block_X)+','+str(block_Z) in save_folder_files_list:
-                with open(os.path.join(main_folder_dir,"saves",save_name,str(block_X)+','+str(block_Z))) as a:map=write_list(map,json.load(a),[temp3,temp4,temp5,temp6],[])
-            else:
-                return 0
-    #第三步
-    #    v4----- v5
-    #   /|      /|
-    #  v0------v1|
-    #  | |↗    | |
-    #  | v7----|-v6
-    #  |/      |/
-    #  v3------v2→
-    #目标就是先求出区块中心，随后求出V3这个点的位置，最后换算坐标进入区块坐标系
-    center_block_x=(block_X-0.5)*block_size
-    center_block_z=(block_Z-0.5)*block_size
-    try:return map[temp3][temp4][temp5][temp6][y][float2int(x-center_block_x)][float2int(z-center_block_z)]
-    except IndexError:return 0
-def write_block_fill_callback(a,b):
-    if a==len(b)-1:return 0
-    else:return []
-def write_block(x:int,y:int,z:int,write:int):
-    global map
-    #第一步
-    i=1
-    ii=1
-    if x<0:i=-1
-    if z<0:ii=-1
-    block_X=float2int((x+temp1*i)/block_size)
-    block_Z=float2int((z+temp1*ii)/block_size)
-    temp3=block_X>=0
-    temp4=block_X+int(block_X<0)
-    temp5=block_Z>=0
-    temp6=block_Z+int(block_Z<0)
-    center_block_x=(block_X-0.5)*block_size
-    center_block_z=(block_Z-0.5)*block_size
-    map=write_list(map,write,[temp3,temp4,temp5,temp6,y,float2int(x-center_block_x),float2int(z-center_block_z)],fill_callback=write_block_fill_callback)
+def unload_block(x:int,y:int,z:int):
+    pass
+def load_block(x:int,y:int,z:int):
+    pass
+@njit
+def flatten(blocks):
+    temp={}#这里会根据blocks的类型自动推断，试过了手动指定，不过报错了
+    for i,ii in blocks.items():
+        for i1,ii1 in ii.items():temp[i1]=ii1
+    return temp
+@njit
+def read_block(x:int,y:int,z:int):
+    """
+    以下为基本原理：
+    1.先计算输入坐标位于的区块位置
+    2.读取区块文件，并将区块放入blocks(使用字典，格式:(0,0):{(0,0,0):1等})
+    3.将blocks通过flatten()降维打击（雾）到block_temp,同样使用字典，全部为(0,0,0):1等，方便检索
+    4.卸载区块时，直接从blocks中删除对应区块的索引，然后重新生成block_temp
+    """
+    #后记：为了改成numba我2022/3/5下午甚至反复翻了numba文档十几遍，关键是机翻很难看懂，感受到没文化的累了
+    #这里说一下新手入门numba建议用jupyter反复调试，国内没有完整的教程，只能多看文档了，多看多调就能懂一点了
 draw=False
 block_VAO=0
 block_VBO_buffer_len=0
@@ -277,7 +245,7 @@ def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，�
         #创建顶点VBO
         block_VBO=glGenBuffers(1)
         glBindBuffer(GL_ARRAY_BUFFER,block_VBO)
-        a=numpy.array(block_point_buffer,dtype='float32')
+        a=np.array(block_point_buffer,dtype='float32')
         glBufferData(GL_ARRAY_BUFFER,sys.getsizeof(a),a,GL_STATIC_DRAW)
         block_VBO_buffer_len=int(len(a)/3)
         #创建纹理VBO
@@ -293,7 +261,7 @@ def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，�
         #创建纹理指针
         texture_EBO=glGenBuffers(1)
         glBindBuffer(GL_ARRAY_BUFFER,texture_EBO)
-        a=numpy.array(texture_coord,dtype='float32')
+        a=np.array(texture_coord,dtype='float32')
         glBufferData(GL_ARRAY_BUFFER,sys.getsizeof(a),a,GL_STATIC_DRAW)
         #绑定VAO
         block_VAO=glGenVertexArrays(1)
@@ -499,22 +467,7 @@ def debug_3d():
         glVertex3f(0,0,1)
         glEnd()
         #显示坐标系文字（方便与MC原版进行矫正）
-        hDC=wglGetCurrentDC()
-        #设定文字的字体、颜色和背景
-        win32gui.SelectObject(hDC,win32ui.CreateFont({"height":0,"width":0,"name":font}).GetSafeHandle())
-        win32gui.SetBkMode(hDC,win32con.TRANSPARENT)
-        glColor3ub(0,0,0)
-        a=glGenLists(1)
-        glRasterPos3f(1,0,0)
-        wglUseFontBitmapsW(hDC,ord('x'),1,a)
-        glCallList(a)
-        glRasterPos3f(0,1,0)
-        wglUseFontBitmapsW(hDC,ord('y'),1,a)
-        glCallList(a)
-        glRasterPos3f(0,0,1)
-        wglUseFontBitmapsW(hDC,ord('z'),1,a)
-        glCallList(a)
-        win32gui.DeleteObject(hDC)
+
 def debug_2d():
     global debug_text
     if debug:
@@ -530,6 +483,7 @@ def debug_2d():
         debug_text[1]=a
         #调用文字显示函数显示debug内容，并顺便打印文字出来
         text_printer.print_text_list(debug_text,y=780,m=-1)
+#@njit
 def view_orientations(px,py,callback=None):
     #我还没有学过三角函数，因此如果输入负数也能正常使用，以下代码可以更加简洁。请帮忙改一改哈😀
     if callback is not None:
@@ -571,8 +525,9 @@ def world_main_loop():
         player_x+x,player_y+y+1,player_z+z,
         0,1,0
     )
+    install_block(float2int(player_x),float2int(player_y),float2int(player_z))
     #渲染方块
-    print_blocks(int(player_x),int(player_y),int(player_z))
+    print_blocks(float2int(player_x),float2int(player_y),float2int(player_z))
     #显示选中的方块
     #    v4----- v5
     #   /|      /|
@@ -601,7 +556,6 @@ def world_main_loop():
             glVertex3f(a[b[i*2+1]*3],a[b[i*2+1]*3+1],a[b[i*2+1]*3+2])
         glEnd()
     debug_3d()
-    text_printer.print_text_list(text=["***REMOVED***！"],size=96,parameter=(1,1,0,1,1),row_small=1,spacing=0)
     #进入2D状态
     glMatrixMode(GL_PROJECTION)
     glLoadIdentity()
@@ -628,6 +582,7 @@ def world_main_loop():
             text_printer.print_text_list([input_buffer]+chat_list)
     if input_text:text_printer.print_text_list([input_buffer]+chat_list)
     #交换缓存，显示画面
+    uninstall_block(float2int(player_x),float2int(player_y),float2int(player_z))
     glutSwapBuffers()
 def walk_left(a,b):return a+1.57,b#1.57是实测出来的数据~
 def spectator_mode(button):
@@ -673,8 +628,9 @@ def lock_or_unlock_mouse(a):
         lock_muose=True
         glutSetCursor(GLUT_CURSOR_NONE)
         glutPostRedisplay()
+@njit
 def mouse_hit_test():
-    #感谢开源项目https://github.com/fogleman/Minecraft提供的函数思路！
+    #感谢开源项目https://github.com/fogleman/Minecraft提供的函数思路！（没错，同样是在做Minecraft）
     m=8#精度
     x,y,z=player_x,player_y+1,player_z
     x_vector,y_vector,z_vector=view_orientations(player_see_x,player_see_y)
@@ -801,11 +757,10 @@ def init():
     #完成其余的初始化
     glutReshapeWindow(window_height*2,window_width*2)
     glClearColor(0.0,174.0,238.0,238.0)
-
 #可直接覆盖函数实现自己的功能
 for i in os.listdir(os.path.join(main_folder_dir,"mods")):
     if i.split(".")[-2:]==["enable","py"]:
-        with open(os.path.join(main_folder_dir,"mods",i),encoding='UTF-8') as f: exec(f.read())
+        with open(os.path.join(main_folder_dir,"mods",i)) as f: exec(f.read())
 
 init()
 glEnable(GL_DEPTH_TEST)
