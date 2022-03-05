@@ -33,8 +33,10 @@
 >>>you can run "pip install pywin32" directly from the command line to install
 >>* freetype-py
 >>>you can run "pip install freetype-py" directly from the command line to install
->>* numba(optional)
+>>* numba
 >>>you can run "pip install numba" directly from the command line to install
+>>* numpy
+>>>you can run "pip install numpy" directly from the command line to install
 >
 >2.run the main program
 >>run "main.py".
@@ -43,5 +45,6 @@
 * Press ~ to open debug mode (including coordinates and axes, etc.)
 ******************************************************************************
 # Want to submit a PR?Check here:[URL](https://github.com/chinese-wzq/PyMinecraft/projects/6)
+# Discussion is welcome:[URL](https://github.com/chinese-wzq/PyMinecraft/discussions)
 ******************************************************************************
 # Never forget Minecraft, it's only our world.
