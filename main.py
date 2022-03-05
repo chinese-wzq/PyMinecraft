@@ -19,6 +19,8 @@
 #函数基本没有对参数进行检查，也就是说，如果你的参数用错了，那么程序是会直接崩溃的（甚至可能找不到原因）
 #所以，在使用函数前，请务必查看程序中对函数的使用方法，并将函数的实现看一遍
 
+#对了，一些变量和函数参数因为英语能力有限不得不用机翻（其实要是我懒可以直接写中文变量名，不过懒得切输入法）
+
 ################################################
 #                本作品为兴趣使然                 #
 #             我并没有收过任何人的钱财              #
@@ -42,7 +44,7 @@ import math
 #导入窗口相关库
 import win32con,win32gui
 #导入区块读取相关库
-import os
+import os,json
 #导入方块贴图生成库
 from PIL import Image
 from PIL import ImageDraw
@@ -50,7 +52,7 @@ from PIL import ImageDraw
 from freetype import *
 #导入numba性能提升
 from numba import njit
-from numba.types import UniTuple,DictType,int64
+from numba.types import UniTuple,DictType,int64,float64,float32
 from numba.typed import Dict
 #导入pythonn程序员必备numpy
 import numpy as np
@@ -73,7 +75,7 @@ window_width=400
 set_chat_list_show_time=100      #聊天框显示多久，2/3时间不变，1/3时间淡化消失
 main_folder_dir=os.path.join(".",".PyMinecraft")        #指定主目录位置(默认为.//PyMincraft)
 save_name="example"         #指定存档名称(位于.//PyMinecraft//saves//下)
-load_all_save=False   #在启动时就加载所有的区块，并且不会执行卸载和加载的程序，可以减少程序卡顿，但在存档过大时需谨慎开启
+load_all_save=True   #在启动时就加载所有的区块，并且不会执行卸载和加载的程序，可以减少程序卡顿，但在存档过大时需谨慎开启
 
 #用户不应该动的变量
 save_folder_files_list=os.listdir(os.path.join(main_folder_dir,"saves",save_name))
@@ -100,7 +102,12 @@ chat_list_show_time=0
 guide_buttons=[]
 
 class FileBuffer:
-    def __init__(self):self.file={}
+    def __init__(self,buffer_max_size=419430400):self.file,self.max={},buffer_max_size
+    def check(self):
+        if sys.getsizeof(self.file)>self.max:
+            while sys.getsizeof(self.file)>self.max:
+                i=self.file.popitem()
+                with open(i[0],"w") as f: f.write(i[1])
     def read(self,path:str,really:bool=False):
         if path not in self.file or really:
             with open(path,"r") as f:self.file[path]=f.read()
@@ -136,7 +143,7 @@ class SmartPlan:
                     self.plan[i][ii][2]=0
                     self.plan[i][ii][0]()
                 else:self.plan[i][ii][2]+=1
-
+smart_planer=SmartPlan()
 def create_block_texture(block_type:int):#没错，方块材质直接现画！
     block=Image.new("RGB",(100,100),"white")
     draw=ImageDraw.Draw(block)
@@ -151,24 +158,30 @@ block_texture.append(create_block_texture(1))
 def float2int(i):
     if i>=0:return math.floor(i)
     if i<0:return math.ceil(i)
-#如果设置为加载全部区块，则进行一些操作
-if load_all_save:
-    for i in save_folder_files_list:
-        a,b=i.split(",")
-        a,b=int(a),int(b)
-        with open(os.path.join(main_folder_dir,"saves",save_name,str(a)+','+str(b))) as f: map=write_list(map,json.load(f),[a>=0,a+int(a<0),b>=0,b+int(b<0)],fill=[])
-def unload_block(x:int,y:int,z:int):
-    pass
-def load_block(x:int,y:int,z:int):
-    pass
+    return 0
 @njit
 def flatten(blocks):
     temp={}#这里会根据blocks的类型自动推断，试过了手动指定，不过报错了
     for i,ii in blocks.items():
         for i1,ii1 in ii.items():temp[i1]=ii1
     return temp
+#如果设置为加载全部区块，则进行一些操作
+if load_all_save:
+    for i in save_folder_files_list:
+        temp=Dict.empty(key_type=UniTuple(int64,3),value_type=int64)
+        for ii,iii in eval(file_buffer_reader.read(os.path.join(main_folder_dir,"saves",save_name,i))).items():temp[ii]=iii#有没有更好的办法直接转换为可以写入blocks的格式？求大佬赐教
+        blocks[eval(i)]=temp
+    del temp
+    block_temp=flatten(blocks)
+def unload_block(player_x:int,player_y:int,player_z:int):
+    if load_all_save:return 0
+def load_block(player_x:int,player_y:int,player_z:int):
+    pass
 @njit
-def read_block(x:int,y:int,z:int):
+def find_block(x:int,y:int,z:int):
+    pass
+@njit
+def read_block(x:int,y:int,z:int,block_temp:dict):
     """
     以下为基本原理：
     1.先计算输入坐标位于的区块位置
@@ -178,6 +191,18 @@ def read_block(x:int,y:int,z:int):
     """
     #后记：为了改成numba我2022/3/5下午甚至反复翻了numba文档十几遍，关键是机翻很难看懂，感受到没文化的累了
     #这里说一下新手入门numba建议用jupyter反复调试，国内没有完整的教程，只能多看文档了，多看多调就能懂一点了
+    try:return block_temp[(x,y,z)]
+    except Exception:return 0
+def write_block(x:int,y:int,z:int,block_ID:int):
+    global block_temp
+    if block_ID==0:
+        try:
+            global draw
+            del block_temp[(x,y,z)]#提示一下，这里其实是临时实现（其实就是现在还懒得做，急着赶出来），如果要实现保存还需要通过计算找到对应的区块，才能进行可保存的操作
+            #block_temp=flatten(blocks)
+            draw=True
+        except Exception:return 0
+    else:block_temp[(x,y,z)]=block_ID
 draw=False
 block_VAO=0
 block_VBO_buffer_len=0
@@ -198,7 +223,7 @@ def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，�
         for y in range(lowest_y,highest_y+1):
             for x in range(sx-int((look_length-1)/2),sx+int((look_length-1)/2)+1):
                 for z in range(sz-int((look_length-1)/2),sz+int((look_length-1)/2)+1):
-                    by_wzq=read_block(x,y,z)
+                    by_wzq=read_block(x,y,z,block_temp)
                     if not by_wzq==0:
                         #图盗的
                         #    v4----- v5
@@ -483,11 +508,9 @@ def debug_2d():
         debug_text[1]=a
         #调用文字显示函数显示debug内容，并顺便打印文字出来
         text_printer.print_text_list(debug_text,y=780,m=-1)
-#@njit
-def view_orientations(px,py,callback=None):
+@njit(UniTuple(float64,3)(float64,float64))
+def view_orientations(px,py):
     #我还没有学过三角函数，因此如果输入负数也能正常使用，以下代码可以更加简洁。请帮忙改一改哈😀
-    if callback is not None:
-        px,py=callback(px,py)
     if px>=0:
         if px>90:
             x=math.cos(px-90)
@@ -525,7 +548,7 @@ def world_main_loop():
         player_x+x,player_y+y+1,player_z+z,
         0,1,0
     )
-    install_block(float2int(player_x),float2int(player_y),float2int(player_z))
+    load_block(float2int(player_x),float2int(player_y),float2int(player_z))
     #渲染方块
     print_blocks(float2int(player_x),float2int(player_y),float2int(player_z))
     #显示选中的方块
@@ -536,9 +559,9 @@ def world_main_loop():
     #  | v7----|-v6
     #  |/      |/
     #  v3------v2
-    i=mouse_hit_test()[0]
-    if i!=[1]:
-        x,y,z=i
+    i=mouse_hit_test(block_temp,player_see_x,player_see_y,player_x,player_y,player_z)
+    if i is not None:
+        x,y,z=i[0]
         a=[x-0.5,y+0.5,z-0.5,  #V0
            x+0.5,y+0.5,z-0.5,  #V1
            x+0.5,y-0.5,z-0.5,  #V2
@@ -582,9 +605,8 @@ def world_main_loop():
             text_printer.print_text_list([input_buffer]+chat_list)
     if input_text:text_printer.print_text_list([input_buffer]+chat_list)
     #交换缓存，显示画面
-    uninstall_block(float2int(player_x),float2int(player_y),float2int(player_z))
+    unload_block(float2int(player_x),float2int(player_y),float2int(player_z))
     glutSwapBuffers()
-def walk_left(a,b):return a+1.57,b#1.57是实测出来的数据~
 def spectator_mode(button):
     global player_x,player_y,player_z
     if button in [b'w',b's']:
@@ -594,7 +616,7 @@ def spectator_mode(button):
             y*=-1
             z*=-1
     else:
-        x,y,z=view_orientations(player_see_x,player_see_y,walk_left)
+        x,y,z=view_orientations(player_see_x+1.57,player_see_y)
         if button==b'd':
             x*=-1
             z*=-1
@@ -629,30 +651,31 @@ def lock_or_unlock_mouse(a):
         glutSetCursor(GLUT_CURSOR_NONE)
         glutPostRedisplay()
 @njit
-def mouse_hit_test():
+def mouse_hit_test(block_temp,player_see_x,player_see_y,player_x,player_y,player_z):
     #感谢开源项目https://github.com/fogleman/Minecraft提供的函数思路！（没错，同样是在做Minecraft）
-    m=8#精度
+    m=1000#精度
     x,y,z=player_x,player_y+1,player_z
     x_vector,y_vector,z_vector=view_orientations(player_see_x,player_see_y)
+    x_vector,y_vector,z_vector=x_vector/m,y_vector/m,z_vector/m
     free_block=0
-    for _ in range(int(60*m)):
+    for _ in range(70*m):
         free_block=float2int(x),float2int(y),float2int(z)
-        x,y,z=x+x_vector/m,y+y_vector/m,z+z_vector/m
-        if y<lowest_y-0.5:return [1],[1]
-        if read_block(float2int(x),float2int(y),float2int(z))!=0:
+        x,y,z=x+x_vector,y+y_vector,z+z_vector
+        if y<lowest_y-0.5:return None
+        if read_block(float2int(x),float2int(y),float2int(z),block_temp)!=0:
             return (float2int(x),float2int(y),float2int(z)),free_block
-    return [1],[1]
+    return None
 def world_mouseclick(button,state,x,y):
     global mouse,draw
     if not mouse[2]:
-        i=mouse_hit_test()[1]
-        if i!=[1]:
-            write_block(i[0],i[1],i[2],1)
+        i=mouse_hit_test(block_temp,player_see_x,player_see_y,player_x,player_y,player_z)
+        if i is not None:
+            write_block(i[1][0],i[1][1],i[1][2],1)
             draw=False
     if not mouse[0]:
-        i=mouse_hit_test()[0]
-        if i!=[1]:
-            write_block(i[0],i[1],i[2],0)
+        i=mouse_hit_test(block_temp,player_see_x,player_see_y,player_x,player_y,player_z)
+        if i is not None:
+            write_block(i[0][0],i[0][1],i[0][2],0)
             draw=False
     mouse[button]=state
 def keyboarddown(button,x,y):
