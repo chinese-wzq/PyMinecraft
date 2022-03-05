@@ -52,7 +52,7 @@ from PIL import ImageDraw
 from freetype import *
 #导入numba性能提升
 from numba import njit
-from numba.types import UniTuple,DictType,int64,float64,float32
+from numba.types import UniTuple,DictType,int64,float64
 from numba.typed import Dict
 #导入pythonn程序员必备numpy
 import numpy as np
@@ -83,7 +83,7 @@ player_see_x=0
 player_see_y=0
 lock_muose=False
 debug=False
-blocks=Dict.empty(key_type=UniTuple(int64, 2),value_type=DictType(UniTuple(int64,3),int64))
+blocks=Dict.empty(key_type=UniTuple(int64,2),value_type=DictType(UniTuple(int64,3),int64))
 #新手入门numba备注：   ↑             ↑               ↑         ↑
 #                键的类型    意为有两个int64项的元组 值的类型  意为：键是由3个int64项组成的元组，值是int64的字典
 block_temp=Dict.empty(key_type=UniTuple(int64, 3), value_type=int64)
@@ -117,7 +117,7 @@ class FileBuffer:
             with open(path,"w") as f:f.write(content)
         self.file[path]=content
     def save(self):
-        for i,ii in self.file:
+        for i,ii in self.file.items():
             with open(i,"w") as f:f.write(ii)
 file_buffer_reader=FileBuffer()
 class SmartPlan:
@@ -131,14 +131,14 @@ class SmartPlan:
         """
         for i in range(len(self.plan)):
             if self.plan[i][0]==priority:
-                self.plan[i]+=[callback,frequen,0]
+                self.plan[i]+=[callback,frequency,0]
                 return 0
-        self.plan+=[priority[callback,frequen,0]]
-        def a(item):return item[0]
-        self.plan.sort(key=a,reverse=True)
+        self.plan.append([priority,[callback,frequency,0]])
+        def aa(item):return item[0]
+        self.plan.sort(key=aa,reverse=True)
     def clock(self):
         for i in range(len(self.plan)):
-            for ii in range(1,len(self.plan[i])-1):
+            for ii in range(1,len(self.plan[i])):
                 if self.plan[i][ii][2]+1==self.plan[i][ii][1]:
                     self.plan[i][ii][2]=0
                     self.plan[i][ii][0]()
@@ -173,13 +173,31 @@ if load_all_save:
         blocks[eval(i)]=temp
     del temp
     block_temp=flatten(blocks)
-def unload_block(player_x:int,player_y:int,player_z:int):
+def unload_block(player_x:int,player_z:int):
     if load_all_save:return 0
-def load_block(player_x:int,player_y:int,player_z:int):
-    pass
+    global blocks
+    temp=find_block(player_x,player_z)
+    temp1=float2int(buffer_block_size/2)
+    for i,ii in blocks.items():
+        if temp[0]-temp1<=i[0]<=temp[0]+temp1 or temp[1]-temp1<=i[1]<=temp[1]+temp1:
+            file_buffer_reader.write(os.path.join(main_folder_dir,"saves",save_name,"("+str(i[0])+","+str(i[1])+")"),str(ii))
+            del blocks[i]
+    block_temp=flatten(blocks)
+def load_block(player_x:int,player_z:int):
+    if load_all_save:return 0
+    global blocks,draw
+    temp=find_block(player_x,player_z)
+    temp1=float2int(buffer_block_size/2)
+    for i in range(temp[0]-temp1,temp[0]+temp1+1):
+        for ii in range(temp[1]-temp1,temp[1]+temp1+1):
+            if (i,ii) not in blocks:
+                temp2=Dict.empty(key_type=UniTuple(int64,3),value_type=int64)
+                for iii,iiii in eval(file_buffer_reader.read(os.path.join(main_folder_dir,"saves",save_name,str((i,ii))))).items():temp2[iii]=iiii  #有没有更好的办法直接转换为可以写入blocks的格式？求大佬赐教
+                blocks[eval(i)]=temp2
+                draw=True
+    block_temp=flatten(blocks)
 @njit
-def find_block(x:int,y:int,z:int):
-    pass
+def find_block(x:int,z:int):return float2int((x+block_size/2*int(x<0)*-2+1)/block_size),float2int((z+block_size/2*int(z<0)*-2+1)/block_size)
 @njit
 def read_block(x:int,y:int,z:int,block_temp:dict):
     """
@@ -194,15 +212,22 @@ def read_block(x:int,y:int,z:int,block_temp:dict):
     try:return block_temp[(x,y,z)]
     except Exception:return 0
 def write_block(x:int,y:int,z:int,block_ID:int):
-    global block_temp
+    global block_temp,blocks
     if block_ID==0:
         try:
             global draw
-            del block_temp[(x,y,z)]#提示一下，这里其实是临时实现（其实就是现在还懒得做，急着赶出来），如果要实现保存还需要通过计算找到对应的区块，才能进行可保存的操作
-            #block_temp=flatten(blocks)
+            del blocks[find_block(x,z)][(x,y,z)]
+            if len(blocks[find_block(x,z)])==0:del blocks[find_block(x,z)]
+            block_temp=flatten(blocks)
             draw=True
         except Exception:return 0
-    else:block_temp[(x,y,z)]=block_ID
+    else:
+        try:blocks[find_block(x,z)][(x,y,z)]=block_ID
+        except Exception:
+            temp=Dict.empty(key_type=UniTuple(int64,3),value_type=int64)
+            temp[(x,y,z)]=block_ID
+            blocks[find_block(x,z)]=temp
+        block_temp=flatten(blocks)
 draw=False
 block_VAO=0
 block_VBO_buffer_len=0
@@ -548,7 +573,7 @@ def world_main_loop():
         player_x+x,player_y+y+1,player_z+z,
         0,1,0
     )
-    load_block(float2int(player_x),float2int(player_y),float2int(player_z))
+    load_block(float2int(player_x),float2int(player_z))
     #渲染方块
     print_blocks(float2int(player_x),float2int(player_y),float2int(player_z))
     #显示选中的方块
@@ -605,7 +630,7 @@ def world_main_loop():
             text_printer.print_text_list([input_buffer]+chat_list)
     if input_text:text_printer.print_text_list([input_buffer]+chat_list)
     #交换缓存，显示画面
-    unload_block(float2int(player_x),float2int(player_y),float2int(player_z))
+    unload_block(float2int(player_x),float2int(player_z))
     glutSwapBuffers()
 def spectator_mode(button):
     global player_x,player_y,player_z
@@ -638,6 +663,8 @@ def run_command(command):#名义上叫做运行指令，实际上负责了聊天
             player_x=float(command_split[1])
             player_y=float(command_split[2])
             player_z=float(command_split[3])
+        if command_split[0]=="saves":
+            for i,ii in blocks.items():file_buffer_reader.write(os.path.join(main_folder_dir,"saves",save_name,"("+str(i[0])+","+str(i[1])+")"),str(ii))
     chat_list=[input_buffer]+chat_list
     chat_list_show_time=set_chat_list_show_time
 def lock_or_unlock_mouse(a):
@@ -736,6 +763,7 @@ def backgroud():
         player_y+=0.1
         glutPostRedisplay()
     #聊天框淡化事件，必须要激活
+    smart_planer.clock()
     if chat_list_show_time!=0 and not input_text:glutPostRedisplay()
 def guide_button_event_init():
     global guide_buttons
@@ -780,11 +808,11 @@ def init():
     #完成其余的初始化
     glutReshapeWindow(window_height*2,window_width*2)
     glClearColor(0.0,174.0,238.0,238.0)
+    smart_planer.add(1000,file_buffer_reader.save,1)
 #可直接覆盖函数实现自己的功能
 for i in os.listdir(os.path.join(main_folder_dir,"mods")):
     if i.split(".")[-2:]==["enable","py"]:
         with open(os.path.join(main_folder_dir,"mods",i)) as f: exec(f.read())
-
 init()
 glEnable(GL_DEPTH_TEST)
 glDepthFunc(GL_LESS)
