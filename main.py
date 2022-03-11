@@ -81,6 +81,8 @@ load_all_save=True   #在启动时就加载所有的区块，并且不会执行�
 save_folder_files_list=os.listdir(os.path.join(main_folder_dir,"saves",save_name))
 player_see_x=0
 player_see_y=0
+player_see_x_temp=0
+player_see_y_temp=0
 lock_muose=False
 debug=False
 blocks=Dict.empty(key_type=UniTuple(int64,2),value_type=DictType(UniTuple(int64,3),int64))
@@ -517,7 +519,6 @@ def debug_3d():
         glVertex3f(0,0,1)
         glEnd()
         #显示坐标系文字（方便与MC原版进行矫正）
-
 def debug_2d():
     global debug_text
     if debug:
@@ -743,28 +744,41 @@ def keyboardup(button,x,y):
     global keyboard
     keyboard[button]=False
 def world_mousemove(x,y):
-    global player_see_x,player_see_y
+    global player_see_x_temp,player_see_y_temp
     if lock_muose and window_height!=x and window_width!=y:
-        player_see_x=(window_height-x)*mouse_move_speed+player_see_x
-        player_see_y=(window_width-y)*mouse_move_speed+player_see_y
+        player_see_x_temp=(window_height-x)*mouse_move_speed
+        player_see_y_temp=(window_width-y)*mouse_move_speed
         #这里增加了数值限制，防止过头，因为是实测的数据，可能有不准，见谅~
-        if player_see_y>2:player_see_y=2
-        if player_see_y<-2:player_see_y=-2
-        if player_see_x>3:player_see_x-=6
-        if player_see_x<-3: player_see_x+=6
         glutWarpPointer(window_height,window_width)
         glutPostRedisplay()
 def backgroud():
-    global keyboard,player_y
+    global keyboard,player_y,player_see_y,player_see_y_temp,player_see_x,player_see_x_temp
     #键盘
     for i in [b'w',b's',b'a',b'd']:
         if keyboard[i]:spectator_mode(i)
-    if keyboard[b' ']:
-        player_y+=0.1
-        glutPostRedisplay()
+    if keyboard[b' ']:player_y+=0.1
+    wzqnb=0.2
+    if player_see_y_temp!=0:
+        if player_see_y_temp<wzqnb:
+            player_see_y+=player_see_y_temp
+            player_see_y_temp=0
+        else:
+            player_see_y_temp-=wzqnb
+            player_see_y+=wzqnb
+        if player_see_y>2:player_see_y=2
+        if player_see_y<-2:player_see_y=-2
+    if player_see_x_temp!=0:
+        if player_see_x_temp<wzqnb:
+            player_see_x+=player_see_x_temp
+            player_see_x_temp=0
+        else:
+            player_see_x_temp-=wzqnb
+            player_see_x+=wzqnb
+        if player_see_x>3:player_see_x-=6
+        if player_see_x<-3: player_see_x+=6
     #聊天框淡化事件，必须要激活
     smart_planer.clock()
-    if chat_list_show_time!=0 and not input_text:glutPostRedisplay()
+    glutPostRedisplay()
 def guide_button_event_init():
     global guide_buttons
     guide_buttons=[]
