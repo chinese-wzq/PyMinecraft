@@ -12,8 +12,6 @@
 # If you want to encourage me, give me a free Star,or you can submit a few Pull requests
 ##### You don't give Star, I don't give Star, the programmer will commit suicide tomorrow
 ******************************************************************************
-## Github has updated the "Projects" where you can see my future and current plans. [URL](https://github.com/chinese-wzq/PyMinecraft/projects/)
-******************************************************************************
 ### Thanks for the OpenGL introductory tutorial [OpenGL tutorial for python programmers](https://blog.csdn.net/xufive/article/details/86565130)
 ******************************************************************************
 ### Why this project?
@@ -38,6 +36,7 @@
 # Key Description:
 * Press ~ to open debug mode (including coordinates and axes, etc.)
 ******************************************************************************
+# Github has updated the "Projects" where you can see my future and current plans. [URL](https://github.com/chinese-wzq/PyMinecraft/projects/)
 # Want to submit a PR?Check here:[URL](https://github.com/chinese-wzq/PyMinecraft/projects/6)
 # Discussion is welcome:[URL](https://github.com/chinese-wzq/PyMinecraft/discussions)
 ******************************************************************************
