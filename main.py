@@ -538,20 +538,12 @@ def view_orientations(px,py):
     #我还没有学过三角函数，因此如果输入负数也能正常使用，以下代码可以更加简洁。请帮忙改一改哈😀
     px*=math.pi/180
     py*=math.pi/180
-    if px>=0:
-        if px>90:
-            x=math.cos(px-90)
-            z=math.sin(px-90)*-1
-        else:
-            x=math.sin(px)
-            z=math.cos(px)
+    if px>90 or px<-90:
+        x=math.cos(px-90)
+        z=math.sin(px-90)*-1
     else:
-        if px<-90:
-            x=math.cos((px+90)*-1)*-1
-            z=math.sin((px+90)*-1)*-1
-        else:
-            x=math.sin(px*-1)*-1
-            z=math.cos(px*-1)
+        x=math.sin(px)
+        z=math.cos(px)
     if py>=0:
         y=math.sin(py)
     else:
@@ -679,6 +671,9 @@ def lock_or_unlock_mouse(a):
         lock_muose=True
         glutSetCursor(GLUT_CURSOR_NONE)
         glutPostRedisplay()
+@njit
+def separating_axis_theorem(block_x,block_y,block_z,ray_x,ray_y,ray_z,ray_dx,ray_dy,return_place_block):#根据射线测试三个面
+    pass
 @njit
 def mouse_hit_test(block_temp,player_see_x,player_see_y,player_x,player_y,player_z):
     """
