@@ -61,7 +61,7 @@ import numpy as np
 
 #允许用户自定义的变量,已将大部分变量做好注释
 
-mouse_move_speed=0.01 #鼠标移动距离
+mouse_move_speed=1 #鼠标移动距离
 player_move_speed=0.1
 look_length=15  #渲染距离,只支持不小于1的奇数
 highest_y=100  #世界最高Y坐标
@@ -77,7 +77,7 @@ main_folder_dir=os.path.join(".",".PyMinecraft")        #指定主目录位置(�
 save_name="example"         #指定存档名称(位于.//PyMinecraft//saves//下)
 load_all_save=True   #在启动时就加载所有的区块，并且不会执行卸载和加载的程序，可以减少程序卡顿，但在存档过大时需谨慎开启
 
-#用户不应该动的变量
+#用户不应该动的变量（当然放这里就代表有能耐你也能动）
 save_folder_files_list=os.listdir(os.path.join(main_folder_dir,"saves",save_name))
 player_see_x=0
 player_see_y=0
@@ -95,7 +95,7 @@ debug_text=[['XYZ:',0.0,',',0.0,',',0.0],
 block_size=11   #必须为单数
 buffer_block_size=15   #也必须为单数
 keyboard={}
-for i in [b'\x1b',b'`',b'w',b's',b'a',b'd',b" "]:keyboard[i]=False
+for i in [b'\x1b',b'`',b'w',b's',b'a',b'd',b" ",b"x"]:keyboard[i]=False
 mouse={0:1,2:1}
 input_text=False
 input_buffer=""
@@ -213,15 +213,13 @@ def read_block(x:int,y:int,z:int,block_temp:dict):
     #这里说一下新手入门numba建议用jupyter反复调试，国内没有完整的教程，只能多看文档了，多看多调就能懂一点了
     try:return block_temp[(x,y,z)]
     except Exception:return 0
-def write_block(x:int,y:int,z:int,block_ID:int):
-    global block_temp,blocks
+def write_block(x:int,y:int,z:int,block_ID:int):#为什么不用numba？因为还没有必要😀
+    global block_temp,blocks,draw
     if block_ID==0:
         try:
-            global draw
             del blocks[find_block(x,z)][(x,y,z)]
             if len(blocks[find_block(x,z)])==0:del blocks[find_block(x,z)]
             block_temp=flatten(blocks)
-            draw=True
         except Exception:return 0
     else:
         try:blocks[find_block(x,z)][(x,y,z)]=block_ID
@@ -230,6 +228,7 @@ def write_block(x:int,y:int,z:int,block_ID:int):
             temp[(x,y,z)]=block_ID
             blocks[find_block(x,z)]=temp
         block_temp=flatten(blocks)
+    draw=True
 draw=False
 block_VAO=0
 block_VBO_buffer_len=0
@@ -537,6 +536,8 @@ def debug_2d():
 @njit(UniTuple(float64,3)(float64,float64))
 def view_orientations(px,py):
     #我还没有学过三角函数，因此如果输入负数也能正常使用，以下代码可以更加简洁。请帮忙改一改哈😀
+    px*=math.pi/180
+    py*=math.pi/180
     if px>=0:
         if px>90:
             x=math.cos(px-90)
@@ -642,7 +643,7 @@ def spectator_mode(button):
             y*=-1
             z*=-1
     else:
-        x,y,z=view_orientations(player_see_x+1.57,player_see_y)
+        x,y,z=view_orientations(player_see_x+90,player_see_y)
         if button==b'd':
             x*=-1
             z*=-1
@@ -680,19 +681,17 @@ def lock_or_unlock_mouse(a):
         glutPostRedisplay()
 @njit
 def mouse_hit_test(block_temp,player_see_x,player_see_y,player_x,player_y,player_z):
-    #感谢开源项目https://github.com/fogleman/Minecraft提供的函数思路！（没错，同样是在做Minecraft）
-    m=1000#精度
-    x,y,z=player_x,player_y+1,player_z
-    x_vector,y_vector,z_vector=view_orientations(player_see_x,player_see_y)
-    x_vector,y_vector,z_vector=x_vector/m,y_vector/m,z_vector/m
-    free_block=0
-    for _ in range(70*m):
-        free_block=float2int(x),float2int(y),float2int(z)
-        x,y,z=x+x_vector,y+y_vector,z+z_vector
-        if y<lowest_y-0.5:return None
-        if read_block(float2int(x),float2int(y),float2int(z),block_temp)!=0:
-            return (float2int(x),float2int(y),float2int(z)),free_block
-    return None
+    """
+        简单阐述一下思路吧
+        在网上看到一个分离轴算法，类似手电筒打影子的东西，不过如果要用在这里的话没法放置方块，
+        不过曲线救国，我可以在检测到射线有交集的那个方块四周检测，检测到了就代表那个位置是能
+        放置方块的了！
+
+        至于如何处理这么多的方块，我个人的办法是以玩家头部为中心逐步扩大检测范围。当然还可以根据
+        玩家头部的角度来减少范围，不过三角函数我一直没完全搞懂QAQ现在的player_see_x和y都是很
+        将就的，可能还需要作者进一步学习吧
+    """
+
 def world_mouseclick(button,state,x,y):
     global mouse,draw
     if not mouse[2]:
@@ -748,7 +747,6 @@ def world_mousemove(x,y):
     if lock_muose and window_height!=x and window_width!=y:
         player_see_x_temp=(window_height-x)*mouse_move_speed
         player_see_y_temp=(window_width-y)*mouse_move_speed
-        #这里增加了数值限制，防止过头，因为是实测的数据，可能有不准，见谅~
         glutWarpPointer(window_height,window_width)
         glutPostRedisplay()
 def backgroud():
@@ -757,25 +755,18 @@ def backgroud():
     for i in [b'w',b's',b'a',b'd']:
         if keyboard[i]:spectator_mode(i)
     if keyboard[b' ']:player_y+=0.1
-    wzqnb=0.2
+    if keyboard[b'x']: player_y-=0.1
+    wzqnb=5
     if player_see_y_temp!=0:
-        if player_see_y_temp<wzqnb:
-            player_see_y+=player_see_y_temp
-            player_see_y_temp=0
-        else:
-            player_see_y_temp-=wzqnb
-            player_see_y+=wzqnb
-        if player_see_y>2:player_see_y=2
-        if player_see_y<-2:player_see_y=-2
+        player_see_y_temp,player_see_y=player_see_y_temp-wzqnb*(-1+(player_see_y_temp>0)*2),player_see_y+wzqnb*(-1+(player_see_y_temp>0)*2)
+        if math.fabs(player_see_y_temp)<wzqnb:player_see_y_temp,player_see_y=0,player_see_y_temp+player_see_y
+        if player_see_y>90:player_see_y=90
+        if player_see_y<-90:player_see_y=-90
     if player_see_x_temp!=0:
-        if player_see_x_temp<wzqnb:
-            player_see_x+=player_see_x_temp
-            player_see_x_temp=0
-        else:
-            player_see_x_temp-=wzqnb
-            player_see_x+=wzqnb
-        if player_see_x>3:player_see_x-=6
-        if player_see_x<-3: player_see_x+=6
+        player_see_x_temp,player_see_x=player_see_x_temp-wzqnb*(-1+(player_see_x_temp>0)*2),player_see_x+wzqnb*(-1+(player_see_x_temp>0)*2)
+        if math.fabs(player_see_x_temp)<wzqnb:player_see_x_temp,player_see_x=0,player_see_x_temp+player_see_x
+        if player_see_x>180:player_see_x=-180
+        if player_see_x<-180: player_see_x=180
     #聊天框淡化事件，必须要激活
     smart_planer.clock()
     glutPostRedisplay()
@@ -833,7 +824,7 @@ glDepthFunc(GL_LESS)
 glutKeyboardFunc(keyboarddown)
 glutKeyboardUpFunc(keyboardup)
 init_info=(glGetDoublev(GL_MODELVIEW_MATRIX),glGetDoublev(GL_PROJECTION_MATRIX))
-#这里二选一注释，注释第一个进入世界（成熟），注释第二个进入界面（未成熟）
+#这里二选一注释，注释第一个进入世界（成熟），注释第二个进入界面（没做，只有背景和测试文字）
 #guide_init()
 go_to_world()
 glutMainLoop()#正式开始运行
