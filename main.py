@@ -544,10 +544,7 @@ def view_orientations(px,py):
     else:
         x=math.sin(px)
         z=math.cos(px)
-    if py>=0:
-        y=math.sin(py)
-    else:
-        y=math.sin(py*-1)*-1
+    y=math.sin(py)
     return x,y,z
 def world_main_loop():
     global input_text,chat_list_show_time
