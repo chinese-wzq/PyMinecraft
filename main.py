@@ -18,6 +18,7 @@
 #二次开发提示：
 #函数基本没有对参数进行检查，也就是说，如果你的参数用错了，那么程序是会直接崩溃的（甚至可能找不到原因）
 #所以，在使用函数前，请务必查看程序中对函数的使用方法，并将函数的实现看一遍
+#请将程序中频繁调用但主要为数学计算的函数（如世界的方块读取，寻路AI，碰撞箱检测）加入numba支持（对性能有很大影响）
 
 #对了，一些变量和函数参数因为英语能力有限不得不用机翻（其实要是我懒可以直接写中文变量名，不过懒得切输入法）
 
@@ -194,7 +195,7 @@ def load_block(player_x:int,player_z:int):
         for ii in range(temp[1]-temp1,temp[1]+temp1+1):
             if (i,ii) not in blocks:
                 temp2=Dict.empty(key_type=UniTuple(int64,3),value_type=int64)
-                for iii,iiii in eval(file_buffer_reader.read(os.path.join(main_folder_dir,"saves",save_name,str((i,ii))))).items():temp2[iii]=iiii  #有没有更好的办法直接转换为可以写入blocks的格式？求大佬赐教
+                for iii,iiii in eval(file_buffer_reader.read(os.path.join(main_folder_dir,"saves",save_name,str((i,ii))))).items():temp2[iii]=iiii  #有没有更好的办法直接转换为可以写入blocks的格式？求大佬赐教                                               你居然这么闲......好吧，那就让你忙活一下！代码里埋了一些彩蛋，找找看？
                 blocks[eval(i)]=temp2
                 draw=True
     block_temp=flatten(blocks)
@@ -213,7 +214,7 @@ def read_block(x:int,y:int,z:int,block_temp:dict):
     #这里说一下新手入门numba建议用jupyter反复调试，国内没有完整的教程，只能多看文档了，多看多调就能懂一点了
     try:return block_temp[(x,y,z)]
     except Exception:return 0
-def write_block(x:int,y:int,z:int,block_ID:int):#为什么不用numba？因为还没有必要😀
+def write_block(x:int,y:int,z:int,block_ID:int):#为什么不用numba？因为还没有必要😀而且不好搞
     global block_temp,blocks,draw
     if block_ID==0:
         try:
@@ -518,6 +519,9 @@ def debug_3d():
         glVertex3f(0,0,1)
         glEnd()
         #显示坐标系文字（方便与MC原版进行矫正）
+        text_printer.print_text_list(["x"],1,0,0,row_small=1)
+        text_printer.print_text_list(["y"],0,1,0,row_small=1)
+        text_printer.print_text_list(["z"],0,0,1,row_small=1)
 def debug_2d():
     global debug_text
     if debug:
@@ -534,18 +538,13 @@ def debug_2d():
         #调用文字显示函数显示debug内容，并顺便打印文字出来
         text_printer.print_text_list(debug_text,y=780,m=-1)
 @njit(UniTuple(float64,3)(float64,float64))
-def view_orientations(px,py):
-    #我还没有学过三角函数，因此如果输入负数也能正常使用，以下代码可以更加简洁。请帮忙改一改哈😀
-    px*=math.pi/180
-    py*=math.pi/180
-    if px>90 or px<-90:
-        x=math.cos(px-90)
-        z=math.sin(px-90)*-1
-    else:
-        x=math.sin(px)
-        z=math.cos(px)
-    y=math.sin(py)
-    return x,y,z
+def view_orientations(px,py):return math.cos(px*math.pi/180-90),math.sin(py*math.pi/180),math.sin(px*math.pi/180-90)*-1
+#尊敬的代码阅读者，当你看到这里的时候可能会有点疑惑这是什么,为什么一行代码就搞定了？
+#好吧，老实说，因为偶然的巧合（说是三角函数负数可以输出正数，然而现在我发现不能），我删掉了一些代码
+#然后又因为降智的想法，又删了一些（像现在这样），结果没想到程序跑得很好（对，就很离谱）
+#所以说if全都没了，只剩下这堆实际有用的代码。
+#里面有个我打死都理解不了的px*math.pi/180-90，单位都不一样直接就减了，但是就是可以正常运行，你说奇不奇怪？？？
+#不过程序界有个原则就是能跑就不改，我一改就不行。我放弃了。今天算是受到了程序的毒打
 def world_main_loop():
     global input_text,chat_list_show_time
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
@@ -627,19 +626,12 @@ def spectator_mode(button):
     global player_x,player_y,player_z
     if button in [b'w',b's']:
         x,y,z=view_orientations(player_see_x,player_see_y)
-        if button==b's':
-            x*=-1
-            y*=-1
-            z*=-1
+        if button==b's':x,y,z=x*-1,y*-1,z*-1
     else:
         x,y,z=view_orientations(player_see_x+90,player_see_y)
-        if button==b'd':
-            x*=-1
-            z*=-1
+        if button==b'd':x,z=x*-1,z*-1
         y=0
-    player_x+=x*player_move_speed
-    player_y+=y*player_move_speed
-    player_z+=z*player_move_speed
+    player_x,player_y,player_z=player_x+x*player_move_speed,player_y+y*player_move_speed,player_z+z*player_move_speed
     glutPostRedisplay()
 def run_command(command):#名义上叫做运行指令，实际上负责了聊天框输入事件处理的全部
     global chat_list,chat_list_show_time,draw
@@ -669,8 +661,25 @@ def lock_or_unlock_mouse(a):
         glutSetCursor(GLUT_CURSOR_NONE)
         glutPostRedisplay()
 @njit
-def separating_axis_theorem(block_x,block_y,block_z,ray_x,ray_y,ray_z,ray_dx,ray_dy,return_place_block):#根据射线测试三个面
-    pass
+def separating_axis_theorem(block_x,block_y,block_z,ray_x,ray_y,ray_z,ray_dx,ray_dy,ray_long):#根据射线测试三个面
+    #使用分离轴算法,暂不考虑刚好平行
+    #参考自绘图片下的射线检测.glb和射线检测.jpg
+    #算出x轴的投影,注意不止和ray_dx有关，ray_dy也决定了ray_long
+    if ray_dx>90 or ray_dx<-90:
+        x_shadow=ray_x,ray_x-math.sin((math.fabs(ray_dx)-90)*math.pi/180)*math.cos(math.fabs(ray_dy)*math.pi/180)*ray_long #BC,x轴投影
+        #AC,z轴投影
+        if numpy.sign(ray_dx)==-1:z_shadow=ray_z,ray_z+math.cos((math.fabs(ray_dx)-90)*math.pi/180)*math.cos(math.fabs(ray_dy)*math.pi/180)*ray_long*numpy.sign(ray_dx)
+        else:z_shadow=ray_z+math.cos((math.fabs(ray_dx)-90)*math.pi/180)*math.cos(math.fabs(ray_dy)*math.pi/180)*ray_long*numpy.sign(ray_dx),ray_z
+    else:
+        x_shadow=ray_x+math.cos(math.fabs(ray_dx)*math.pi/180)*math.cos(math.fabs(ray_dy)*math.pi/180)*ray_long,ray_x #AC,x轴投影
+        #BC,z轴投影
+        if numpy.sign(ray_dx)==-1:z_shadow=ray_z,ray_z+math.sin(math.fabs(ray_dx)*math.pi/180)*math.cos(math.fabs(ray_dy)*math.pi/180)*ray_long*numpy.sign(ray_dx)
+        else:z_shadow=ray_z+math.sin(math.fabs(ray_dx)*math.pi/180)*math.cos(math.fabs(ray_dy)*math.pi/180)*ray_long*numpy.sign(ray_dx),ray_z
+    print(x_shadow,z_shadow)
+    #接下来是验证了，感谢CSDN某文章的指点迷津，判断有没有重合只需要判断端点有没有重合
+    if x_shadow[1]>block_x+0.5 or block_x-0.5>x_shadow[0] or z_shadow[1]>block_z+0.5 or block_z-0.5>z_shadow[0]:return #xz轴投影没有交集的情况
+    else:#第一次判断成功，第二次走起~
+        print("WWW")
 @njit
 def mouse_hit_test(block_temp,player_see_x,player_see_y,player_x,player_y,player_z):
     """
@@ -762,9 +771,6 @@ def backgroud():
     #聊天框淡化事件，必须要激活
     smart_planer.clock()
     glutPostRedisplay()
-def guide_button_event_init():
-    global guide_buttons
-    guide_buttons=[]
 def guide_main_loop():
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     glMatrixMode(GL_PROJECTION)
@@ -827,4 +833,4 @@ glutMainLoop()#正式开始运行
 #☆ * (つ ノ .☆
 #　　  (ノ
 #代码破800行啦！
-#我推送了88次代码！
+#我推送了100次代码！
