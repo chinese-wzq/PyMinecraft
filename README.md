@@ -28,7 +28,7 @@
 >>>
 >>>对于64位电脑，你可以在https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyopengl 下载对应的whl如“”PyOpenGL‑3.1.5‑cp310‑cp310‑win_amd64.whl“”后使用`pip install 你下载的whl文件`安装
 >>* pywin32,freetype-py,numba,numpy,pillow
->>>you can run "pip install pywin32 freetype-py numba numpy pillow" directly from the command line to install
+>>>你可以在命令行里运行"pip install pywin32 freetype-py numba numpy pillow"安装
 >
 >二、 运行主程序
 >>运行"main.py"即可。
@@ -40,5 +40,10 @@
 # 看完了想要贡献？看看这儿：[空降地址🪂](https://github.com/chinese-wzq/PyMinecraft/projects/6)
 # 欢迎参与讨论[空降地址🪂](https://github.com/chinese-wzq/PyMinecraft/discussions)
 # Github上不了？试试[dev-sidecar(开发者边车)](https://gitee.com/docmirror/dev-sidecar)
+******************************************************************************
+# 我们的愿景：（中文独占）
+## 1. 给予服务器更多的权限，可以向客户端直接发送类python代码/图像/文本（直接发送python代码并执行有安全隐患，因此我将在客户端提供函数，发送的类python代码只能使用函数提供的功能，也可以给发送的python代码提供一个虚拟环境，防止越权），并直接由客户端执行，可以实现原版类似mod的功能
+## 2. 客户端原生支持mod，但具体的mod框架需要他人开发，客户端只提供覆盖函数的功能。
+## 3. 由于游戏开源，欢迎各位同仁一起给游戏添加新的内容与玩法！（注释注释！）
 ******************************************************************************
 # 永远不要忘记Minecraft,那是只属于我们的世界。
