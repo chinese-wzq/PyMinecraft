@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-
 # -*- coding: utf-8 -*-
+
 # Always believe,always hope.
 
 #感谢您的遇见！
@@ -722,8 +722,6 @@ def keyboarddown(button,x,y):
             glutSetCursor(GLUT_CURSOR_LEFT_ARROW)
             glutPostRedisplay()
             return 0
-        elif button==b'k':
-            if separating_axis_theorem(2,2,2,player_x,player_y+1,player_z,player_see_x,player_see_y,50) is not None:print("Hit!")
         keyboard[button]=True
 def keyboardup(button,x,y):
     global keyboard
