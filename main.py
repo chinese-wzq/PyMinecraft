@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # -*- coding: utf-8 -*-
 # Always believe,always hope.
 
@@ -42,18 +44,14 @@ from OpenGL.GLUT import *
 from OpenGL.GLU import *
 #导入三角函数相关库
 import math
-#导入窗口相关库
-import win32con,win32gui
-#导入区块读取相关库
-import os,json
 #导入方块贴图生成库
 from PIL import Image
 from PIL import ImageDraw
 #导入字体点阵获取相关库
 from freetype import *
-#导入numba性能提升
+#导入numba性能提升相关库（直接将python代码编译为机器码）
 from numba import njit
-from numba.types import UniTuple,DictType,int64,float64
+from numba.types import UniTuple,DictType,int64,float64#这里PyCharm报错，不过实测可以导入，别动代码屎山！
 from numba.typed import Dict
 #导入pythonn程序员必备numpy
 import numpy as np
@@ -70,7 +68,7 @@ lowest_y=0   #世界最低Y坐标，目前如果更改将会报错！
 player_x=0    #这几个不必细说，都懂都懂
 player_y=-1
 player_z=-1
-font="C:/WINDOWS/Fonts/msyh.ttc"    #显示文字时使用的字体,需完整路径
+font="/usr/share/fonts/wenquanyi/wqy-zenhei/wqy-zenhei.ttc"    #显示文字时使用的字体,需完整路径
 window_height=400    #窗口的长和宽
 window_width=400
 set_chat_list_show_time=100      #聊天框显示多久，2/3时间不变，1/3时间淡化消失
@@ -538,13 +536,16 @@ def debug_2d():
         #调用文字显示函数显示debug内容，并顺便打印文字出来
         text_printer.print_text_list(debug_text,y=780,m=-1)
 @njit(UniTuple(float64,3)(float64,float64))
-def view_orientations(px,py):return math.cos(px*math.pi/180-90),math.sin(py*math.pi/180),math.sin(px*math.pi/180-90)*-1
+def view_orientations(px,py):
+    #我觉得python的pi好像精度不高，于是这坨数字就出现了
+    pi=3.14159265358979323846264338327950288419716939937510582097494459230781640628620899862803482534211706798214808651328230664709384460955058223172535940812848111745028410270193852110555964462294895493038196442881097566593344612847564823378678316527120190914564856692346034861045432664821339360726024914127372458700660631558817488152092096282925409171536436789259036001133053054882046652138414695194151160943305727036575959195309218611738193261179310511854807446237996274956735188575272489122793818301194912
+    return math.cos(px*pi/180-90),math.sin(py*pi/180),math.sin(px*pi/180-90)*-1
 #尊敬的代码阅读者，当你看到这里的时候可能会有点疑惑这是什么,为什么一行代码就搞定了？
 #好吧，老实说，因为偶然的巧合（说是三角函数负数可以输出正数，然而现在我发现不能），我删掉了一些代码
 #然后又因为降智的想法，又删了一些（像现在这样），结果没想到程序跑得很好（对，就很离谱）
 #所以说if全都没了，只剩下这堆实际有用的代码。
 #里面有个我打死都理解不了的px*math.pi/180-90，单位都不一样直接就减了，但是就是可以正常运行，你说奇不奇怪？？？
-#不过程序界有个原则就是能跑就不改，我一改就不行。我放弃了。今天算是受到了程序的毒打
+#不过程序界有个原则就是能跑就不改，我一改就不行。我放弃了。今天算是受到了程序的教育了，以前一直觉得要完全理解，现在发现我太幼稚了。
 def world_main_loop():
     global input_text,chat_list_show_time
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
@@ -661,38 +662,20 @@ def lock_or_unlock_mouse(a):
         glutSetCursor(GLUT_CURSOR_NONE)
         glutPostRedisplay()
 @njit
-def separating_axis_theorem(block_x,block_y,block_z,ray_x,ray_y,ray_z,ray_dx,ray_dy,ray_long):#根据射线测试三个面
-    #使用分离轴算法,暂不考虑刚好平行
-    #参考自绘图片下的射线检测.glb和射线检测.jpg
-    #算出x轴的投影,注意不止和ray_dx有关，ray_dy也决定了ray_long
-    if ray_dx>90 or ray_dx<-90:
-        x_shadow=ray_x,ray_x-math.sin((math.fabs(ray_dx)-90)*math.pi/180)*math.cos(math.fabs(ray_dy)*math.pi/180)*ray_long #BC,x轴投影
-        #AC,z轴投影
-        if numpy.sign(ray_dx)==-1:z_shadow=ray_z,ray_z+math.cos((math.fabs(ray_dx)-90)*math.pi/180)*math.cos(math.fabs(ray_dy)*math.pi/180)*ray_long*numpy.sign(ray_dx)
-        else:z_shadow=ray_z+math.cos((math.fabs(ray_dx)-90)*math.pi/180)*math.cos(math.fabs(ray_dy)*math.pi/180)*ray_long*numpy.sign(ray_dx),ray_z
-    else:
-        x_shadow=ray_x+math.cos(math.fabs(ray_dx)*math.pi/180)*math.cos(math.fabs(ray_dy)*math.pi/180)*ray_long,ray_x #AC,x轴投影
-        #BC,z轴投影
-        if numpy.sign(ray_dx)==-1:z_shadow=ray_z,ray_z+math.sin(math.fabs(ray_dx)*math.pi/180)*math.cos(math.fabs(ray_dy)*math.pi/180)*ray_long*numpy.sign(ray_dx)
-        else:z_shadow=ray_z+math.sin(math.fabs(ray_dx)*math.pi/180)*math.cos(math.fabs(ray_dy)*math.pi/180)*ray_long*numpy.sign(ray_dx),ray_z
-    print(x_shadow,z_shadow)
-    #接下来是验证了，感谢CSDN某文章的指点迷津，判断有没有重合只需要判断端点有没有重合
-    if x_shadow[1]>block_x+0.5 or block_x-0.5>x_shadow[0] or z_shadow[1]>block_z+0.5 or block_z-0.5>z_shadow[0]:return #xz轴投影没有交集的情况
-    else:#第一次判断成功，第二次走起~
-        print("WWW")
-@njit
 def mouse_hit_test(block_temp,player_see_x,player_see_y,player_x,player_y,player_z):
-    """
-        简单阐述一下思路吧
-        在网上看到一个分离轴算法，类似手电筒打影子的东西，不过如果要用在这里的话没法放置方块，
-        不过曲线救国，我可以在检测到射线有交集的那个方块四周检测，检测到了就代表那个位置是能
-        放置方块的了！
-
-        至于如何处理这么多的方块，我个人的办法是以玩家头部为中心逐步扩大检测范围。当然还可以根据
-        玩家头部的角度来减少范围，不过三角函数我一直没完全搞懂QAQ现在的player_see_x和y都是很
-        将就的，可能还需要作者进一步学习吧
-    """
-
+    #感谢开源项目https://github.com/fogleman/Minecraft提供的函数思路！（没错，同样是在做Minecraft）
+    m=8#精度
+    x,y,z=player_x,player_y+1,player_z
+    x_vector,y_vector,z_vector=view_orientations(player_see_x,player_see_y)
+    x_vector,y_vector,z_vector=x_vector/m,y_vector/m,z_vector/m
+    free_block=0
+    for _ in range(70*m):
+        free_block=round(x),round(y),round(z)
+        x,y,z=x+x_vector,y+y_vector,z+z_vector
+        if y<lowest_y-0.5:return None
+        if read_block(round(x),round(y),round(z),block_temp)!=0:
+            return (round(x),round(y),round(z)),free_block
+    return None
 def world_mouseclick(button,state,x,y):
     global mouse,draw
     if not mouse[2]:
@@ -739,6 +722,8 @@ def keyboarddown(button,x,y):
             glutSetCursor(GLUT_CURSOR_LEFT_ARROW)
             glutPostRedisplay()
             return 0
+        elif button==b'k':
+            if separating_axis_theorem(2,2,2,player_x,player_y+1,player_z,player_see_x,player_see_y,50) is not None:print("Hit!")
         keyboard[button]=True
 def keyboardup(button,x,y):
     global keyboard
@@ -803,11 +788,6 @@ def init():
     glutInit()
     glutInitDisplayMode(GLUT_DOUBLE|GLUT_DEPTH|GLUT_RGBA)
     glutCreateWindow("PyMinecraft ByWzq".encode('GBK',errors="replace"))
-    #使用户无法更改窗口大小
-    hwnd=win32gui.GetForegroundWindow()
-    A=win32gui.GetWindowLong(hwnd,win32con.GWL_STYLE)
-    A^=win32con.WS_THICKFRAME
-    win32gui.SetWindowLong(hwnd,win32con.GWL_STYLE,A)
     #完成其余的初始化
     glutReshapeWindow(window_height*2,window_width*2)
     glClearColor(0.0,174.0,238.0,238.0)
