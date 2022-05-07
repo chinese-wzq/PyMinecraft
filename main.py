@@ -36,10 +36,15 @@
 
 #################感谢与你相遇！###################
 
+import sys
 #导入OpenGL相关库
+import time
+
 from OpenGL.GL import *
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
+#导入GLFW OpenGL窗口跨平台API（同时提供鼠标键盘等的API，也许还可以允许跨模块同一上下文？暂未测试）
+from glfw.GLFW import *
 #导入三角函数相关库
 import math
 #导入numba性能提升相关库（直接将python代码编译为机器码）
@@ -113,6 +118,7 @@ def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，�
     #虽然他没有叫我贴上这个注释，不过我想，做人要学会感恩😀
     global block_VAO,block_VBO_buffer_len,texture_VBO
     if total_var_manager.get_var("draw"):
+        total_var_manager.set_var("draw",False)
         block_point_buffer=[]
         block_color_buffer=[]
         texture_coord=[]
@@ -197,7 +203,6 @@ def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，�
         glEnableClientState(GL_TEXTURE_COORD_ARRAY)
         #解绑
         glBindVertexArray(0)
-        total_var_manager.set_var("draw",True)
     glEnable(GL_TEXTURE_2D)
     glBindTexture(GL_TEXTURE_2D,texture_VBO)
     glBindVertexArray(block_VAO)
@@ -429,8 +434,10 @@ def world_main_loop():
             glColor4ub(255,255,255,float2int(765/set_chat_list_show_time*chat_list_show_time))
             text_printer.print_text_list([input_buffer]+chat_list)
     if input_text:text_printer.print_text_list([input_buffer]+chat_list)
-    #交换缓存，显示画面
     block_manager.unload_block(float2int(player_x),float2int(player_z))
+    #保持窗口
+    window_reshape()
+    #交换缓存，显示画面
     glutSwapBuffers()
 def spectator_mode(button):
     global player_x,player_y,player_z
@@ -590,6 +597,7 @@ def go_to_world():
     glutPassiveMotionFunc(world_mousemove)
     glutMouseFunc(world_mouseclick)
 def nothing(*args):pass
+def window_reshape():glutReshapeWindow(window_height*2,window_width*2)
 def init():
     #进行glut的最基础初始化
     glutInit()
@@ -598,7 +606,8 @@ def init():
     #完成其余的初始化
     glutReshapeWindow(window_height*2,window_width*2)
     glClearColor(0.0,174.0,238.0,238.0)
-    smart_plan_manager.add(1000, file_buffer_manager.save, 1)
+    smart_plan_manager.add(1000,file_buffer_manager.save, 1)
+    #smart_plan_manager.add(100,window_reshape,1)
 #可直接覆盖函数实现自己的功能
 for i in os.listdir(os.path.join(block_manager.main_folder_dir,"mods")):
     if i.split(".")[-2:]==["enable","py"]:

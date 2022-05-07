@@ -33,7 +33,7 @@ class FileBufferManager:
         for i,ii in self.file.items():
             with open(i,"w") as f:f.write(ii)
 
-class SmartPlanManager:
+class SmartPlanManager:#之后可能会全部使用这个东东来对世界事件进行合理的调控
     def __init__(self):self.plan=[]
     def add(self,frequency,callback,priority):
         """
@@ -42,9 +42,10 @@ class SmartPlanManager:
         :param priority: 优先级。函数从高优先级一直执行到低优先级直到完毕。显示函数应放在最低优先级
         :return: 无
         """
+        print(self.plan,frequency,callback,priority)
         for i in range(len(self.plan)):
             if self.plan[i][0]==priority:
-                self.plan[i]+=[callback,frequency,0]
+                self.plan[i].append([callback,frequency,0])
                 return 0
         self.plan.append([priority,[callback,frequency,0]])
         def aa(item):return item[0]

@@ -27,8 +27,8 @@
 >>>64-bit should download the .whl file to install, 32-bit can be installed directly using `pip install pyopengl`
 >>>
 >>>For 64-bit computer, you can download the corresponding whl at https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyopengl such as ""PyOpenGL‑3.1.5‑cp310‑cp310‑win_amd64.whl "" after installing using `pip install .whl`
->>* pywin32,freetype-py,numba,numpy,pillow
->>>you can run "pip install pywin32 freetype-py numba numpy pillow" directly from the command line to install
+>>* freetype-py,numba,numpy,pillow
+>>>you can run "pip install freetype-py numba numpy pillow" directly from the command line to install
 >
 >2.run the main program
 >>run "main.py".
