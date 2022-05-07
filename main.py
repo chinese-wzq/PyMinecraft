@@ -12,8 +12,6 @@
 #欢迎你与他对线，并且将他的作品地址发给我（让我康康啊♂）
 #以下为程序声明以及一些介绍，如果有不符合规范的欢迎提出拉取请求，我不懂开源协议，太多了QAQ
 
-#本程序使用字体：JetBrains Mono，字体不同可能会出现程序内的注释排版紊乱！
-
 #本程序部分行较长。为什么？因为觉得这样很爽（莫名）
 #本程序经常出现直接对函数参数赋值的情况。为什么？因为这样写的行更少，而且不用再想新的变量名啦~
 
@@ -25,15 +23,15 @@
 #对了，一些变量和函数参数因为英语能力有限不得不用机翻（其实要是我懒可以直接写中文变量名，不过懒得切输入法）
 
 ################################################
-#                本作品为兴趣使然                 #
-#             我并没有收过任何人的钱财              #
-#             也没有与任何人有契约关系              #
-#     本作品与MOJANG工作室（BUGJUMP）没有任何关系    #
-#     我从来没有查看过Minecraft的源码（反正看不懂）   #
-#      本作品仅供学习、娱乐，商用请注明项目地址        #
-#        欢迎提交拉取请求，这是对我最大的支持         #
-#    我也只是一个小小的初二生，很多数学计算略为粗糙     #
-#            因此希望您帮助改进我的算法             #
+#                本作品为兴趣使然               #
+#             我并没有收过任何人的钱财           #
+#             也没有与任何人有契约关系           #
+#     本作品与MOJANG工作室（BUGJUMP）没有任何关系 #
+#    我从来没有查看过Minecraft的源码（反正看不懂) #
+#      本作品仅供学习、娱乐，商用请注明项目地址   #
+#        欢迎提交拉取请求，这是对我最大的支持     #
+#    我也只是一个小小的初二生，很多数学计算略为粗糙#
+#            因此希望您帮助改进我的算法          #
 ################################################
 
 #################感谢与你相遇！###################
@@ -44,22 +42,33 @@ from OpenGL.GLUT import *
 from OpenGL.GLU import *
 #导入三角函数相关库
 import math
-#导入方块贴图生成库
-from PIL import Image
-from PIL import ImageDraw
-#导入字体点阵获取相关库
-from freetype import *
 #导入numba性能提升相关库（直接将python代码编译为机器码）
 from numba import njit
-from numba.types import UniTuple,DictType,int64,float64#这里PyCharm报错，不过实测可以导入，别动代码屎山！
-from numba.typed import Dict
-#导入pythonn程序员必备numpy
+from numba.types import UniTuple,float64#这里PyCharm报错，不过实测可以导入，别动代码屎山！
+#导入python程序员必备numpy
 import numpy as np
-#导入性能测试函数（仅供开发使用）
-#import timeit
+
+#导入实用模块
+from main.useful_modules import SmartPlanManager,FileBufferManager,TotalVarManager,GetCharacterImage,float2int
+#初始化实用模块
+file_buffer_manager=FileBufferManager()
+smart_plan_manager=SmartPlanManager()
+character_getter=GetCharacterImage()
+total_var_manager=TotalVarManager({
+    "draw":True,
+    "file_buffer_manager":file_buffer_manager
+})
+#导入方块相关模块
+import main.block.get_texture as get_texture
+block_texture=[get_texture.create_block_texture(1)]
+#导入方块管理器
+import main.block.block_manager as block_manager
+block_manager.init(total_var_manager)
+#导入世界管理器
+
+#可供自定义的变量有些还放到了main文件夹下面的模块里面，因为这样子就没有必要再考虑如何将本文件里面定义的变量应用到模块里面了，望周知。
 
 #允许用户自定义的变量,已将大部分变量做好注释
-
 mouse_move_speed=1 #鼠标移动距离
 player_move_speed=0.1
 look_length=15  #渲染距离,只支持不小于1的奇数
@@ -68,31 +77,20 @@ lowest_y=0   #世界最低Y坐标，目前如果更改将会报错！
 player_x=0    #这几个不必细说，都懂都懂
 player_y=-1
 player_z=-1
-font="/usr/share/fonts/wenquanyi/wqy-zenhei/wqy-zenhei.ttc"    #显示文字时使用的字体,需完整路径
 window_height=400    #窗口的长和宽
 window_width=400
 set_chat_list_show_time=100      #聊天框显示多久，2/3时间不变，1/3时间淡化消失
-main_folder_dir=os.path.join(".",".PyMinecraft")        #指定主目录位置(默认为.//PyMincraft)
-save_name="example"         #指定存档名称(位于.//PyMinecraft//saves//下)
-load_all_save=True   #在启动时就加载所有的区块，并且不会执行卸载和加载的程序，可以减少程序卡顿，但在存档过大时需谨慎开启
 
 #用户不应该动的变量（当然放这里就代表有能耐你也能动）
-save_folder_files_list=os.listdir(os.path.join(main_folder_dir,"saves",save_name))
 player_see_x=0
 player_see_y=0
 player_see_x_temp=0
 player_see_y_temp=0
 lock_muose=False
 debug=False
-blocks=Dict.empty(key_type=UniTuple(int64,2),value_type=DictType(UniTuple(int64,3),int64))
-#新手入门numba备注：   ↑             ↑               ↑         ↑
-#                键的类型    意为有两个int64项的元组 值的类型  意为：键是由3个int64项组成的元组，值是int64的字典
-block_temp=Dict.empty(key_type=UniTuple(int64, 3), value_type=int64)
-block_texture=[]
+
 debug_text=[['XYZ:',0.0,',',0.0,',',0.0],
             ['EYE:',0,',',0],]
-block_size=11   #必须为单数
-buffer_block_size=15   #也必须为单数
 keyboard={}
 for i in [b'\x1b',b'`',b'w',b's',b'a',b'd',b" ",b"x"]:keyboard[i]=False
 mouse={0:1,2:1}
@@ -101,137 +99,10 @@ input_buffer=""
 chat_list=[]
 chat_list_show_time=0
 guide_buttons=[]
-
-class FileBuffer:
-    def __init__(self,buffer_max_size=419430400):self.file,self.max={},buffer_max_size
-    def check(self):
-        if sys.getsizeof(self.file)>self.max:
-            while sys.getsizeof(self.file)>self.max:
-                i=self.file.popitem()
-                with open(i[0],"w") as f: f.write(i[1])
-    def read(self,path:str,really:bool=False):
-        if path not in self.file or really:
-            with open(path,"r") as f:self.file[path]=f.read()
-        return self.file[path]
-    def write(self,path:str,content:str,really:bool=False):
-        if really:
-            with open(path,"w") as f:f.write(content)
-        self.file[path]=content
-    def save(self):
-        for i,ii in self.file.items():
-            with open(i,"w") as f:f.write(ii)
-file_buffer_reader=FileBuffer()
-class SmartPlan:
-    def __init__(self):self.plan=[]
-    def add(self,frequency,callback,priority):
-        """
-        :param frequency: 频率，每执行一次计时函数算作一个单位时间，如为1则是每次都执行，2为第2次执行一次
-        :param callback: 时机到时执行的函数
-        :param priority: 优先级。函数从高优先级一直执行到低优先级直到完毕。显示函数应放在最低优先级
-        :return: 无
-        """
-        for i in range(len(self.plan)):
-            if self.plan[i][0]==priority:
-                self.plan[i]+=[callback,frequency,0]
-                return 0
-        self.plan.append([priority,[callback,frequency,0]])
-        def aa(item):return item[0]
-        self.plan.sort(key=aa,reverse=True)
-    def clock(self):
-        for i in range(len(self.plan)):
-            for ii in range(1,len(self.plan[i])):
-                if self.plan[i][ii][2]+1==self.plan[i][ii][1]:
-                    self.plan[i][ii][2]=0
-                    self.plan[i][ii][0]()
-                else:self.plan[i][ii][2]+=1
-smart_planer=SmartPlan()
-def create_block_texture(block_type:int):#没错，方块材质直接现画！
-    block=Image.new("RGB",(100,100),"white")
-    draw=ImageDraw.Draw(block)
-    if block_type==1:draw.line([5,5,5,95,95,95,95,5,5,5],(0,255,0),10)
-    pixels=block.load()
-    all_pixels=[]
-    for x in range(100):
-        for y in range(100):all_pixels+=list(pixels[x,y])
-    return bytes(all_pixels)
-block_texture.append(create_block_texture(1))
-@njit
-def float2int(i):
-    if i>=0:return math.floor(i)
-    if i<0:return math.ceil(i)
-    return 0
-@njit
-def flatten(blocks):
-    temp={}#这里会根据blocks的类型自动推断，试过了手动指定，不过报错了
-    for i,ii in blocks.items():
-        for i1,ii1 in ii.items():temp[i1]=ii1
-    return temp
-#如果设置为加载全部区块，则进行一些操作
-if load_all_save:
-    for i in save_folder_files_list:
-        temp=Dict.empty(key_type=UniTuple(int64,3),value_type=int64)
-        for ii,iii in eval(file_buffer_reader.read(os.path.join(main_folder_dir,"saves",save_name,i))).items():temp[ii]=iii#有没有更好的办法直接转换为可以写入blocks的格式？求大佬赐教
-        blocks[eval(i)]=temp
-    del temp
-    block_temp=flatten(blocks)
-def unload_block(player_x:int,player_z:int):
-    if load_all_save:return 0
-    global blocks
-    temp=find_block(player_x,player_z)
-    temp1=float2int(buffer_block_size/2)
-    for i,ii in blocks.items():
-        if temp[0]-temp1<=i[0]<=temp[0]+temp1 or temp[1]-temp1<=i[1]<=temp[1]+temp1:
-            file_buffer_reader.write(os.path.join(main_folder_dir,"saves",save_name,"("+str(i[0])+","+str(i[1])+")"),str(ii))
-            del blocks[i]
-    block_temp=flatten(blocks)
-def load_block(player_x:int,player_z:int):
-    if load_all_save:return 0
-    global blocks,draw
-    temp=find_block(player_x,player_z)
-    temp1=float2int(buffer_block_size/2)
-    for i in range(temp[0]-temp1,temp[0]+temp1+1):
-        for ii in range(temp[1]-temp1,temp[1]+temp1+1):
-            if (i,ii) not in blocks:
-                temp2=Dict.empty(key_type=UniTuple(int64,3),value_type=int64)
-                for iii,iiii in eval(file_buffer_reader.read(os.path.join(main_folder_dir,"saves",save_name,str((i,ii))))).items():temp2[iii]=iiii  #有没有更好的办法直接转换为可以写入blocks的格式？求大佬赐教                                               你居然这么闲......好吧，那就让你忙活一下！代码里埋了一些彩蛋，找找看？
-                blocks[eval(i)]=temp2
-                draw=True
-    block_temp=flatten(blocks)
-@njit
-def find_block(x:int,z:int):return float2int((x+block_size/2*int(x<0)*-2+1)/block_size),float2int((z+block_size/2*int(z<0)*-2+1)/block_size)
-@njit
-def read_block(x:int,y:int,z:int,block_temp:dict):
-    """
-    以下为基本原理：
-    1.先计算输入坐标位于的区块位置
-    2.读取区块文件，并将区块放入blocks(使用字典，格式:(0,0):{(0,0,0):1等})
-    3.将blocks通过flatten()降维打击（雾）到block_temp,同样使用字典，全部为(0,0,0):1等，方便检索
-    4.卸载区块时，直接从blocks中删除对应区块的索引，然后重新生成block_temp
-    """
-    #后记：为了改成numba我2022/3/5下午甚至反复翻了numba文档十几遍，关键是机翻很难看懂，感受到没文化的累了
-    #这里说一下新手入门numba建议用jupyter反复调试，国内没有完整的教程，只能多看文档了，多看多调就能懂一点了
-    try:return block_temp[(x,y,z)]
-    except Exception:return 0
-def write_block(x:int,y:int,z:int,block_ID:int):#为什么不用numba？因为还没有必要😀而且不好搞
-    global block_temp,blocks,draw
-    if block_ID==0:
-        try:
-            del blocks[find_block(x,z)][(x,y,z)]
-            if len(blocks[find_block(x,z)])==0:del blocks[find_block(x,z)]
-            block_temp=flatten(blocks)
-        except Exception:return 0
-    else:
-        try:blocks[find_block(x,z)][(x,y,z)]=block_ID
-        except Exception:
-            temp=Dict.empty(key_type=UniTuple(int64,3),value_type=int64)
-            temp[(x,y,z)]=block_ID
-            blocks[find_block(x,z)]=temp
-        block_temp=flatten(blocks)
-    draw=True
-draw=False
 block_VAO=0
 block_VBO_buffer_len=0
 texture_VBO=0
+
 def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，不会全部显示一遍，多伤显卡QAQ
     #特别鸣谢：Stack Overflow用户Rabbid76
     #没有他回答了我两个问题，我这一辈子都做不出来
@@ -240,15 +111,15 @@ def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，�
     #https://stackoverflow.com/questions/70610206/opengl-vbo-vao-ebo-can-run-without-error-but-no-graphics
     #https://stackoverflow.com/questions/70844191/pyopengl-run-with-no-texture
     #虽然他没有叫我贴上这个注释，不过我想，做人要学会感恩😀
-    global draw,block_VAO,block_VBO_buffer_len,texture_VBO,map
-    if not draw:
+    global block_VAO,block_VBO_buffer_len,texture_VBO
+    if total_var_manager.get_var("draw"):
         block_point_buffer=[]
         block_color_buffer=[]
         texture_coord=[]
         for y in range(lowest_y,highest_y+1):
             for x in range(sx-int((look_length-1)/2),sx+int((look_length-1)/2)+1):
                 for z in range(sz-int((look_length-1)/2),sz+int((look_length-1)/2)+1):
-                    by_wzq=read_block(x,y,z,block_temp)
+                    by_wzq=block_manager.read_block(x,y,z,block_manager.block_temp)
                     if not by_wzq==0:
                         #图盗的
                         #    v4----- v5
@@ -326,75 +197,13 @@ def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，�
         glEnableClientState(GL_TEXTURE_COORD_ARRAY)
         #解绑
         glBindVertexArray(0)
-        draw=True
+        total_var_manager.set_var("draw",True)
     glEnable(GL_TEXTURE_2D)
     glBindTexture(GL_TEXTURE_2D,texture_VBO)
     glBindVertexArray(block_VAO)
     glColor3ub(255,255,255)
     glDrawArrays(GL_QUADS,0,block_VBO_buffer_len)
     glBindVertexArray(0)
-class GetCharacterImage:
-    def __init__(self,buffer=False):
-        self.__bitmap=None
-        self.bitmap=None
-        self.size_buffer=None
-        self.rows=None
-        self.face=Face(font)
-        self.load=False
-        self.buffer=buffer
-        if self.buffer:self.characters_buffer={}
-    def get_size(self):
-        if self.load:
-            if self.buffer:return self.size_buffer
-            return self.rows,self.__bitmap.width
-        else:raise Exception("在创建字符前获取大小")
-    def character2types(self,character,size,color,all_row,except_character=(",","，","。",".")):
-        """
-        :param character: 仅支持单个字符
-        :param size: 大小
-        :param color: 颜色
-        :param all_row: 自动补齐高度，使文字在图像中间
-        :param except_character: 不补行的字符元组
-        :return: 可以被opengl读取的格式
-        """
-
-        if self.buffer and character+str(size) in self.characters_buffer:
-            self.size_buffer=self.characters_buffer[character+"_size"]
-            return self.characters_buffer[character+str(size)]
-        self.face.set_char_size(size*64)
-        self.face.load_char(character)
-        self.__bitmap=self.face.glyph.bitmap
-        bitmap_buffer=self.__bitmap.buffer
-        self.load=True
-        bitmap__temp=[]
-        self.bitmap=[]
-        temp=(self.__bitmap.rows,self.__bitmap.width)
-        #补行
-        if len(bitmap_buffer)<all_row*temp[1] and character not in except_character:
-            self.rows=all_row
-            #按照指定长度切割列表
-            for i in range(temp[0]):bitmap__temp.append(list(bitmap_buffer[i*temp[1]:(i+1)*temp[1]]))
-            up_rows=float2int((all_row-len(bitmap__temp))/2)
-            down_rows=all_row-len(bitmap__temp)-up_rows
-            for _ in range(up_rows):bitmap__temp.insert(0,list([0]*temp[1]))
-            for _ in range(down_rows): bitmap__temp.append(list([0]*temp[1]))
-            #合并列表
-            debug=len(bitmap__temp)
-            for _ in range(len(bitmap__temp)-1):
-                bitmap__temp[0]+=bitmap__temp[1]
-                bitmap__temp.pop(1)
-            bitmap__temp=bitmap__temp[0]
-        else:
-            bitmap__temp=bitmap_buffer
-            self.rows=self.__bitmap.rows
-        for i in bitmap__temp:self.bitmap+=list(color)+[i]
-        if self.buffer:
-            self.characters_buffer[character+str(size)]=bytes(self.bitmap)
-            self.characters_buffer[character+"_size"]=[self.rows,self.__bitmap.width]
-            self.size_buffer=self.characters_buffer[character+"_size"]
-            return self.characters_buffer[character+str(size)]
-        return bytes(self.bitmap)
-character_getter=GetCharacterImage()
 class PrintText:
     def __init__(self):self.texture_buffer={}
     def default_2d(size,x,y,z,dx,dy,direction="up",parameter:tuple=(1,1,0,1,1)):
@@ -537,7 +346,7 @@ def debug_2d():
         text_printer.print_text_list(debug_text,y=780,m=-1)
 @njit(UniTuple(float64,3)(float64,float64))
 def view_orientations(px,py):
-    #我觉得python的pi好像精度不高，于是这坨数字就出现了
+    #我觉得math模块的pi好像精度不高，于是这坨数字就出现了
     pi=3.14159265358979323846264338327950288419716939937510582097494459230781640628620899862803482534211706798214808651328230664709384460955058223172535940812848111745028410270193852110555964462294895493038196442881097566593344612847564823378678316527120190914564856692346034861045432664821339360726024914127372458700660631558817488152092096282925409171536436789259036001133053054882046652138414695194151160943305727036575959195309218611738193261179310511854807446237996274956735188575272489122793818301194912
     return math.cos(px*pi/180-90),math.sin(py*pi/180),math.sin(px*pi/180-90)*-1
 #尊敬的代码阅读者，当你看到这里的时候可能会有点疑惑这是什么,为什么一行代码就搞定了？
@@ -564,7 +373,7 @@ def world_main_loop():
         player_x+x,player_y+y+1,player_z+z,
         0,1,0
     )
-    load_block(float2int(player_x),float2int(player_z))
+    block_manager.load_block(float2int(player_x),float2int(player_z))
     #渲染方块
     print_blocks(float2int(player_x),float2int(player_y),float2int(player_z))
     #显示选中的方块
@@ -575,7 +384,7 @@ def world_main_loop():
     #  | v7----|-v6
     #  |/      |/
     #  v3------v2
-    i=mouse_hit_test(block_temp,player_see_x,player_see_y,player_x,player_y,player_z)
+    i=mouse_hit_test(block_manager.block_temp,player_see_x,player_see_y,player_x,player_y,player_z)
     if i is not None:
         x,y,z=i[0]
         a=[x-0.5,y+0.5,z-0.5,  #V0
@@ -621,7 +430,7 @@ def world_main_loop():
             text_printer.print_text_list([input_buffer]+chat_list)
     if input_text:text_printer.print_text_list([input_buffer]+chat_list)
     #交换缓存，显示画面
-    unload_block(float2int(player_x),float2int(player_z))
+    block_manager.unload_block(float2int(player_x),float2int(player_z))
     glutSwapBuffers()
 def spectator_mode(button):
     global player_x,player_y,player_z
@@ -640,7 +449,7 @@ def run_command(command):#名义上叫做运行指令，实际上负责了聊天
         #对输入进行拆分
         command_split=command[1:].split(' ')
         if command_split[0]=="fill":
-            write_block(int(command_split[1]),int(command_split[2]),int(command_split[3]),int(command_split[4]))
+            block_manager.write_block(int(command_split[1]),int(command_split[2]),int(command_split[3]),int(command_split[4]))
             draw=False
         if command_split[0]=="tp":
             global player_x,player_y,player_z
@@ -648,7 +457,7 @@ def run_command(command):#名义上叫做运行指令，实际上负责了聊天
             player_y=float(command_split[2])
             player_z=float(command_split[3])
         if command_split[0]=="saves":
-            for i,ii in blocks.items():file_buffer_reader.write(os.path.join(main_folder_dir,"saves",save_name,"("+str(i[0])+","+str(i[1])+")"),str(ii))
+            for i,ii in block_manager.blocks.items():file_buffer_manager.write(os.path.join(block_manager.main_folder_dir, "saves", block_manager.save_name, "(" + str(i[0]) + "," + str(i[1]) + ")"), str(ii))
     chat_list=[input_buffer]+chat_list
     chat_list_show_time=set_chat_list_show_time
 def lock_or_unlock_mouse(a):
@@ -673,20 +482,20 @@ def mouse_hit_test(block_temp,player_see_x,player_see_y,player_x,player_y,player
         free_block=round(x),round(y),round(z)
         x,y,z=x+x_vector,y+y_vector,z+z_vector
         if y<lowest_y-0.5:return None
-        if read_block(round(x),round(y),round(z),block_temp)!=0:
+        if block_manager.read_block(round(x),round(y),round(z),block_temp)!=0:
             return (round(x),round(y),round(z)),free_block
     return None
 def world_mouseclick(button,state,x,y):
     global mouse,draw
     if not mouse[2]:
-        i=mouse_hit_test(block_temp,player_see_x,player_see_y,player_x,player_y,player_z)
+        i=mouse_hit_test(block_manager.block_temp,player_see_x,player_see_y,player_x,player_y,player_z)
         if i is not None:
-            write_block(i[1][0],i[1][1],i[1][2],1)
+            block_manager.write_block(i[1][0],i[1][1],i[1][2],1)
             draw=False
     if not mouse[0]:
-        i=mouse_hit_test(block_temp,player_see_x,player_see_y,player_x,player_y,player_z)
+        i=mouse_hit_test(block_manager.block_temp,player_see_x,player_see_y,player_x,player_y,player_z)
         if i is not None:
-            write_block(i[0][0],i[0][1],i[0][2],0)
+            block_manager.write_block(i[0][0],i[0][1],i[0][2],0)
             draw=False
     mouse[button]=state
 def keyboarddown(button,x,y):
@@ -752,7 +561,7 @@ def backgroud():
         if player_see_x>180:player_see_x=-180
         if player_see_x<-180: player_see_x=180
     #聊天框淡化事件，必须要激活
-    smart_planer.clock()
+    smart_plan_manager.clock()
     glutPostRedisplay()
 def guide_main_loop():
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
@@ -789,11 +598,11 @@ def init():
     #完成其余的初始化
     glutReshapeWindow(window_height*2,window_width*2)
     glClearColor(0.0,174.0,238.0,238.0)
-    smart_planer.add(1000,file_buffer_reader.save,1)
+    smart_plan_manager.add(1000, file_buffer_manager.save, 1)
 #可直接覆盖函数实现自己的功能
-for i in os.listdir(os.path.join(main_folder_dir,"mods")):
+for i in os.listdir(os.path.join(block_manager.main_folder_dir,"mods")):
     if i.split(".")[-2:]==["enable","py"]:
-        with open(os.path.join(main_folder_dir,"mods",i)) as f: exec(f.read())
+        with open(os.path.join(block_manager.main_folder_dir,"mods",i)) as f: exec(f.read())
 init()
 glEnable(GL_DEPTH_TEST)
 glDepthFunc(GL_LESS)
@@ -810,5 +619,5 @@ glutMainLoop()#正式开始运行
 #　. ⊂　　  ノ* ☆
 #☆ * (つ ノ .☆
 #　　  (ノ
-#代码破800行啦！
+#总代码破800行啦！
 #我推送了100次代码！
