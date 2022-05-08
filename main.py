@@ -107,6 +107,7 @@ guide_buttons=[]
 block_VAO=0
 block_VBO_buffer_len=0
 texture_VBO=0
+where_player_block=block_manager.find_block(player_x,player_z)
 
 def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，不会全部显示一遍，多伤显卡QAQ
     #特别鸣谢：Stack Overflow用户Rabbid76
@@ -116,8 +117,9 @@ def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，�
     #https://stackoverflow.com/questions/70610206/opengl-vbo-vao-ebo-can-run-without-error-but-no-graphics
     #https://stackoverflow.com/questions/70844191/pyopengl-run-with-no-texture
     #虽然他没有叫我贴上这个注释，不过我想，做人要学会感恩😀
-    global block_VAO,block_VBO_buffer_len,texture_VBO
-    if total_var_manager.get_var("draw"):
+    global block_VAO,block_VBO_buffer_len,texture_VBO,where_player_block
+    if total_var_manager.get_var("draw") or block_manager.find_block(player_x,player_z)!=where_player_block:
+        where_player_block = block_manager.find_block(player_x,player_z)
         total_var_manager.set_var("draw",False)
         block_point_buffer=[]
         block_color_buffer=[]
