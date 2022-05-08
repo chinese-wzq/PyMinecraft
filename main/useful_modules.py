@@ -42,7 +42,6 @@ class SmartPlanManager:#之后可能会全部使用这个东东来对世界事�
         :param priority: 优先级。函数从高优先级一直执行到低优先级直到完毕。显示函数应放在最低优先级
         :return: 无
         """
-        print(self.plan,frequency,callback,priority)
         for i in range(len(self.plan)):
             if self.plan[i][0]==priority:
                 self.plan[i].append([callback,frequency,0])

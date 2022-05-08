@@ -451,21 +451,22 @@ def spectator_mode(button):
     player_x,player_y,player_z=player_x+x*player_move_speed,player_y+y*player_move_speed,player_z+z*player_move_speed
     glutPostRedisplay()
 def run_command(command):#名义上叫做运行指令，实际上负责了聊天框输入事件处理的全部
-    global chat_list,chat_list_show_time,draw
+    global chat_list,chat_list_show_time
+    chat_list=[input_buffer]+chat_list
     if command[0]=="/":
         #对输入进行拆分
         command_split=command[1:].split(' ')
-        if command_split[0]=="fill":
-            block_manager.write_block(int(command_split[1]),int(command_split[2]),int(command_split[3]),int(command_split[4]))
-            draw=False
-        if command_split[0]=="tp":
+        if command_split[0]=="fill":block_manager.write_block(int(command_split[1]),int(command_split[2]),int(command_split[3]),int(command_split[4]))
+        elif command_split[0]=="tp":
             global player_x,player_y,player_z
             player_x=float(command_split[1])
             player_y=float(command_split[2])
             player_z=float(command_split[3])
-        if command_split[0]=="saves":
+        elif command_split[0]=="saves":
             for i,ii in block_manager.blocks.items():file_buffer_manager.write(os.path.join(block_manager.main_folder_dir, "saves", block_manager.save_name, "(" + str(i[0]) + "," + str(i[1]) + ")"), str(ii))
-    chat_list=[input_buffer]+chat_list
+        elif command_split[0]=="set_var":
+            eval("total_var_manager.set_var(\""+command_split[1]+"\","+command_split[2]+")")
+        else:chat_list=["未知的指令！"]+chat_list
     chat_list_show_time=set_chat_list_show_time
 def lock_or_unlock_mouse(a):
     global lock_muose
