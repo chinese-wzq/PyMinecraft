@@ -39,7 +39,7 @@
 # Github已更新"看板"，你可以在那里看到我将来和现在的计划。[空降地址🪂](https://github.com/chinese-wzq/PyMinecraft/projects/)
 # 想要贡献？看看我做不到的东西：[空降地址🪂](https://github.com/chinese-wzq/PyMinecraft/projects/6)
 # 欢迎参与讨论[空降地址🪂](https://github.com/chinese-wzq/PyMinecraft/discussions)
-# Github上不了？试试[dev-sidecar(开发者边车)](https://gitee.com/docmirror/dev-sidecar)
+# Github上不了？试试[dev-sidecar(开发者边车)](https://github.com/docmirror/dev-sidecar)
 ******************************************************************************
 # 我在做什么?(实时更新):
 ## 修复开启加载全部区块时未加载方块需要时不加载的bug
