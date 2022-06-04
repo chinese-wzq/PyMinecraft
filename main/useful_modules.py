@@ -6,7 +6,7 @@ from numba import njit
 #导入字体点阵获取相关库
 from freetype import Face
 
-font="/usr/share/fonts/wenquanyi/wqy-zenhei/wqy-zenhei.ttc"    #显示文字时使用的字体,需完整路径
+font="文鼎PL中楷体.ttf"    #显示文字时使用的字体,需完整路径
 
 @njit
 def float2int(i):
@@ -93,7 +93,7 @@ class GetCharacterImage:
         if self.buffer and character+str(size) in self.characters_buffer:
             self.size_buffer=self.characters_buffer[character+"_size"]
             return self.characters_buffer[character+str(size)]
-        self.face.set_char_size(size*64)
+        self.face.set_char_size(size*64,)
         self.face.load_char(character)
         self.__bitmap=self.face.glyph.bitmap
         bitmap_buffer=self.__bitmap.buffer
