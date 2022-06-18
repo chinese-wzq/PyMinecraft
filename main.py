@@ -36,15 +36,11 @@
 
 #################感谢与你相遇！###################
 
-import sys
-#导入OpenGL相关库
-import time
 
+#导入OpenGL相关库
 from OpenGL.GL import *
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
-#导入GLFW OpenGL窗口跨平台API（同时提供鼠标键盘等的API，也许还可以允许跨模块同一上下文？暂未测试）
-from glfw.GLFW import *
 #导入三角函数相关库
 import math
 #导入numba性能提升相关库（直接将python代码编译为机器码）
@@ -54,11 +50,11 @@ from numba.types import UniTuple,float64#这里PyCharm报错，不过实测可�
 import numpy as np
 
 #导入实用模块
-from main.useful_modules import SmartPlanManager,FileBufferManager,TotalVarManager,GetCharacterImage,float2int
+from main.useful_modules import SmartPlanManager,FileBufferManager,TotalVarManager,float2int,PrintText,list_merge
 #初始化实用模块
 file_buffer_manager=FileBufferManager()
 smart_plan_manager=SmartPlanManager()
-character_getter=GetCharacterImage()
+character_getter=PrintText()
 total_var_manager=TotalVarManager({
     "draw":True,
     "file_buffer_manager":file_buffer_manager
@@ -211,112 +207,6 @@ def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，�
     glColor3ub(255,255,255)
     glDrawArrays(GL_QUADS,0,block_VBO_buffer_len)
     glBindVertexArray(0)
-class PrintText:
-    def __init__(self):self.texture_buffer={}
-    def default_2d(size,x,y,z,dx,dy,direction="up",parameter:tuple=(1,1,0,1,1)):
-        #parameter参数说明:
-        #第一个参数:是否往x坐标扩展[0不扩展,1正方向扩展]
-        #第二个参数:是否往y坐标扩展[0不扩展,1正方向扩展]
-        #第三个参数:是否往z坐标扩展[0不扩展,1正方向扩展]
-        #第四个参数:位于基线下或上[1朝上，-1朝下]
-        #第五个参数:位于基线左或右[1朝右，-1朝左]
-        #本函数只有3种可能的情况：
-        #
-        #         Y
-        #        /|-----⌉
-        #       v0|   ↑ |    1,1,0
-        #       | |     |
-        # 0,1,1↙| v7------v6 X
-        #       |/   →   /
-        #        v3------v2
-        #       Z   1,0,1
-        #以V7为中心点
-        #(0,1)-→---------(1,1)
-        #  |               |
-        #  |   TexCoord    ↓
-        #  ↑  by 13905069  |
-        #  |               |
-        #(0,0)---------←-(1,0)
-        #计算起始点，以及朝向
-        if direction=="up":texcoord=(1,0,1,1,0,1,0,0)
-        elif direction=="down":texcoord=(1,1,1,0,0,0,0,1)
-        else:raise ValueError("未知的direction参数内容！")
-        if parameter[:3]==(1,1,0):
-            glVertex3f(x+dx*parameter[4],y+(dy+size[0])*parameter[3],z)
-            glTexCoord2f(texcoord[0],texcoord[1])
-            glVertex3f(x+(dx+size[1])*parameter[4],y+(dy+size[0])*parameter[3],z)
-            glTexCoord2f(texcoord[2],texcoord[3])
-            glVertex3f(x+(dx+size[1])*parameter[4],y+dy*parameter[3],z)
-            glTexCoord2f(texcoord[4],texcoord[5])
-            glVertex3f(x+dx*parameter[4],y+dy*parameter[3],z)
-            glTexCoord2f(texcoord[6],texcoord[7])
-        if parameter[:3]==(0,1,1):
-            glVertex3f(x,y+dx*parameter[4],z+(dy+size[0])*parameter[3])
-            glTexCoord2f(texcoord[0],texcoord[1])
-            glVertex3f(x,y+(dx+size[1])*parameter[4],z+(dy+size[0])*parameter[3])
-            glTexCoord2f(texcoord[2],texcoord[3])
-            glVertex3f(x,y+(dx+size[1])*parameter[4],z+dy*parameter[3])
-            glTexCoord2f(texcoord[4],texcoord[5])
-            glVertex3f(x,y+dx*parameter[4],z+dy*parameter[3])
-            glTexCoord2f(texcoord[6],texcoord[7])
-        if parameter[:3]==(1,0,1):
-            glVertex3f(x+(dy+size[0])*parameter[3],y,z+dx*parameter[4])
-            glTexCoord2f(texcoord[0],texcoord[1])
-            glVertex3f(x+(dy+size[0])*parameter[3],y,z+(dx+size[1])*parameter[4])
-            glTexCoord2f(texcoord[2],texcoord[3])
-            glVertex3f(x+dy*parameter[3],y,z+(dx+size[1])*parameter[4])
-            glTexCoord2f(texcoord[4],texcoord[5])
-            glVertex3f(x+dy*parameter[3],y,z+dx*parameter[4])
-            glTexCoord2f(texcoord[6],texcoord[7])
-    def print_text_list(self,text:list,x=0,y=0,z=0,m=1,color=(0,0,0),size=24,spacing=2,all_row=20,buffer=True,direction="up",parameter:tuple=(1,1,0,1,1),row_small=None):#采用freetype+texture，更方便自定义，字体更好看！
-        #vertex_function函数为了实现各个方向的文字显示
-        #这个函数各种方向显示的实现真的想了很久
-        glEnable(GL_TEXTURE_2D)
-        glEnable(GL_BLEND)
-        glDisable(GL_DEPTH_TEST)
-        glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA)
-        dy=0
-        for i in text:
-            qaq=0
-            dx=x
-            if i=="": i=" "
-            for ii in "".join([str(x) for x in i]):#需要进行特殊处理
-                if ii==" ":
-                    a=(all_row,float2int(9/24*size))#这里根据一个比较接近空格的数据进行了计算
-                    if row_small is not None: a=(row_small,a[1]*(a[0]/row_small))
-                    if a[0]>qaq: qaq=a[0]
-                    dx+=a[1]+spacing
-                    continue
-                if buffer and ii+str(size)+str(color)+str(all_row) in self.texture_buffer:
-                    a=self.texture_buffer[ii+str(size)+str(color)+str(all_row)+"_size"]
-                    glBindTexture(GL_TEXTURE_2D,self.texture_buffer[ii+str(size)+str(color)+str(all_row)])
-                else:
-                    texture=glGenTextures(1)
-                    glBindTexture(GL_TEXTURE_2D,texture)
-                    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT)
-                    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT)
-                    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR)
-                    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR)
-                    aa=character_getter.character2types(ii,size=size,color=color,all_row=all_row)
-                    a=character_getter.get_size()
-                    glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,a[1],a[0],0,GL_RGBA,GL_UNSIGNED_BYTE,aa)
-                    glGenerateMipmap(GL_TEXTURE_2D)
-                    glBindTexture(GL_TEXTURE_2D,0)
-                    if buffer:
-                        self.texture_buffer[ii+str(size)+str(color)+str(all_row)]=texture
-                        self.texture_buffer[ii+str(size)+str(color)+str(all_row)+"_size"]=a
-                    glBindTexture(GL_TEXTURE_2D,texture)
-                if row_small is not None: a=(row_small,a[1]*(row_small/a[0]))
-                if a[0]>qaq: qaq=a[0]
-                glBegin(GL_QUADS)
-                PrintText.default_2d(a,x,y,z,dx,dy,direction,parameter)#为什么用函数引出来？因为工程量实在太大，够单独开一个函数讲解了
-                glEnd()
-                dx+=a[1]+spacing
-            dy+=qaq*m
-        glDisable(GL_TEXTURE_2D)
-        glDisable(GL_BLEND)
-        glEnable(GL_DEPTH_TEST)
-text_printer=PrintText()
 def debug_3d():
     if debug:
         #显示一个世界原点的坐标系
@@ -333,9 +223,9 @@ def debug_3d():
         glVertex3f(0,0,1)
         glEnd()
         #显示坐标系文字（方便与MC原版进行矫正）
-        text_printer.print_text_list(["x"],1,0,0,row_small=1)
-        text_printer.print_text_list(["y"],0,1,0,row_small=1)
-        text_printer.print_text_list(["z"],0,0,1,row_small=1)
+        character_getter.print_text_list(["x"],1,0,0,size=1)
+        character_getter.print_text_list(["y"],0,1,0,size=1)
+        character_getter.print_text_list(["z"],0,0,1,size=1)
 def debug_2d():
     global debug_text
     if debug:
@@ -350,7 +240,7 @@ def debug_2d():
         a[3]=round(player_see_y,2)
         debug_text[1]=a
         #调用文字显示函数显示debug内容，并顺便打印文字出来
-        text_printer.print_text_list(debug_text,y=780,m=-1)
+        character_getter.print_text_list(list_merge(debug_text),y=776)
 @njit(UniTuple(float64,3)(float64,float64))
 def view_orientations(px,py):
     #我觉得math模块的pi好像精度不高，于是这坨数字就出现了
@@ -431,11 +321,11 @@ def world_main_loop():
     #显示指令栏
     if chat_list_show_time!=0 and not input_text:
         chat_list_show_time-=1
-        if set_chat_list_show_time/3*1<chat_list_show_time:text_printer.print_text_list([input_buffer]+chat_list)
+        if set_chat_list_show_time/3*1<chat_list_show_time:character_getter.print_text_list([input_buffer]+chat_list,m=-1)
         else:
             glColor4ub(255,255,255,float2int(765/set_chat_list_show_time*chat_list_show_time))
-            text_printer.print_text_list([input_buffer]+chat_list)
-    if input_text:text_printer.print_text_list([input_buffer]+chat_list)
+            character_getter.print_text_list([input_buffer]+chat_list,m=-1)
+    if input_text:character_getter.print_text_list([input_buffer]+chat_list,m=-1)
     block_manager.unload_block(float2int(player_x),float2int(player_z))
     #保持窗口
     window_reshape()
@@ -580,7 +470,13 @@ def guide_main_loop():
     gluOrtho2D(0,window_height*2,0,window_width*2)
     glMatrixMode(GL_MODELVIEW)
     glLoadIdentity()
-    text_printer.print_text_list(text=["P"],x=0,y=400,size=96,row_small=10)
+    character_getter.print_text_list(text=["PyMInecraft gif","I'm testing"],x=0,y=400,size=40)
+    glLineWidth(2)
+    glBegin(GL_LINES)
+    glColor3ub(232,232,232)
+    glVertex2f(5,400)
+    glVertex2f(5,440)
+    glEnd()
     glutSwapBuffers()
 def guide_init():#处理情况：游戏退出到主界面，其他界面退出到主界面
     glutSetCursor(GLUT_CURSOR_LEFT_ARROW)
@@ -610,8 +506,7 @@ def init():
     glutReshapeWindow(window_height*2,window_width*2)
     glClearColor(0.0,174.0,238.0,238.0)
     smart_plan_manager.add(1000,file_buffer_manager.save, 1)
-    #smart_plan_manager.add(100,window_reshape,1)
-#可直接覆盖函数实现自己的功能
+#可直接覆盖函数实现自己的功能,可以当成mod加载器
 for i in os.listdir(os.path.join(block_manager.main_folder_dir,"mods")):
     if i.split(".")[-2:]==["enable","py"]:
         with open(os.path.join(block_manager.main_folder_dir,"mods",i)) as f: exec(f.read())
