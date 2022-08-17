@@ -36,13 +36,13 @@
 # 按键说明：
 * ~键打开debug模式（包含坐标和坐标轴等）
 ******************************************************************************
-# Github已更新"看板"，你可以在那里看到我将来和现在的计划。[空降地址🪂](https://github.com/chinese-wzq/PyMinecraft/projects/)
+# Github已更新"看板"，你可以在那里看到我将来和现在的计划。[空降地址🪂](https://github.com/chinese-wzq/PyMinecraft/projects?type=classic)
 # 想要贡献？看看我做不到的东西：[空降地址🪂](https://github.com/chinese-wzq/PyMinecraft/projects/6)
 # 欢迎参与讨论[空降地址🪂](https://github.com/chinese-wzq/PyMinecraft/discussions)
 # Github上不了？试试[dev-sidecar(开发者边车)](https://github.com/docmirror/dev-sidecar)
 ******************************************************************************
 # 我在做什么?(实时更新):
-## 修复开启加载全部区块时未加载方块需要时不加载的bug
+## 一次特大更新（更新GUI、使用glfw替换glut）
 ******************************************************************************
 # 我们的愿景：（中文独占）
 ## 1. 给予服务器更多的权限，可以向客户端直接发送类python代码/图像/文本（直接发送python代码并执行有安全隐患，因此我将在客户端提供函数，发送的类python代码只能使用函数提供的功能，也可以给发送的python代码提供一个虚拟环境，防止越权），并直接由客户端执行，可以实现原版类似mod的功能
