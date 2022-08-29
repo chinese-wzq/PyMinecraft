@@ -3,7 +3,7 @@
 
 [Gitee中文](https://gitee.com/chinese/PyMinecraft/) | [Github中文](https://github.com/chinese-wzq/PyMinecraft/) | English
 # python&Minecraft,so name"PyMinecraft"
-![](https://www.wumouren.xyz/wp-content/uploads/2022/01/pyminecraft.png)
+![](https://www.wumouren.xyz/wp-content/uploads/2022/08/PyMinecraft.png)
 ******************************************************************************
 <a href="https://info.flagcounter.com/zBbk"><img src="https://s05.flagcounter.com/map/zBbk/size_l/txt_000000/border_CCCCCC/pageviews_1/viewers_0/flags_0/" alt="Flag Counter" border="0"></a>
 ******************************************************************************
@@ -27,8 +27,8 @@
 >>>64-bit should download the .whl file to install, 32-bit can be installed directly using `pip install pyopengl`
 >>>
 >>>For 64-bit computer, you can download the corresponding whl at https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyopengl such as ""PyOpenGL‑3.1.5‑cp310‑cp310‑win_amd64.whl "" after installing using `pip install .whl`
->>* freetype-py,numba,numpy,pillow
->>>you can run "pip install freetype-py numba numpy pillow" directly from the command line to install
+>>* freetype-py,numba,numpy,pillow,glfw
+>>>you can run "pip install freetype-py numba numpy pillow glfw" directly from the command line to install
 >
 >2.run the main program
 >>run "main.py".

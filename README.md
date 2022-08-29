@@ -3,7 +3,7 @@
 
 中文 | [Gitee English](https://gitee.com/chinese-wzq/PyMinecraft/blob/master/README_EN.md) | [Github English](https://github.com/chinese-wzq/PyMinecraft/blob/master/README_EN.md)
 # python&Minecraft,所以叫做"PyMinecraft"
-![](https://www.wumouren.xyz/wp-content/uploads/2022/01/pyminecraft.png)
+![](https://www.wumouren.xyz/wp-content/uploads/2022/08/PyMinecraft.png)
 ******************************************************************************
 <a href="https://info.flagcounter.com/zBbk"><img src="https://s05.flagcounter.com/map/zBbk/size_l/txt_000000/border_CCCCCC/pageviews_1/viewers_0/flags_0/" alt="Flag Counter" border="0"></a>
 ******************************************************************************
@@ -27,8 +27,8 @@
 >>>64位应该下载.whl文件安装，32位可直接使用 `pip install pyopengl` 安装
 >>>
 >>>对于64位电脑，你可以在https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyopengl 下载对应的whl如“”PyOpenGL‑3.1.5‑cp310‑cp310‑win_amd64.whl“”后使用`pip install 你下载的whl文件`安装
->>* freetype-py,numba,numpy,pillow
->>>你可以在命令行里运行"pip install freetype-py numba numpy pillow"安装
+>>* freetype-py,numba,numpy,pillow,glfw
+>>>你可以在命令行里运行"pip install freetype-py numba numpy pillow glfw"安装
 >
 >二、 运行主程序
 >>运行"main.py"即可。

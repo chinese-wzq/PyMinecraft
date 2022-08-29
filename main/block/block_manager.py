@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-# Always believe,always hope.
-
 import os
 from numba import njit
 from numba.types import UniTuple,int64,DictType
@@ -65,7 +63,7 @@ def load_block(player_x:int,player_z:int):
                 total_var_manager.set_var("draw",True)
     block_temp=flatten(blocks)
 @njit
-def find_block(x:int,z:int):return float2int((x+block_size/2*int(x<0)*-2+1)/block_size),float2int((z+block_size/2*int(z<0)*-2+1)/block_size)
+def find_block(x:int,z:int):return float2int((x+block_size/2*int(x<0)*-2+1)/block_size),float2int((z+block_size/2*int(z<0)*-2+1)/block_size)#能简短的代码为什么不简短呢
 @njit
 def read_block(x:int,y:int,z:int,block_temp:dict):
     """
