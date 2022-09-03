@@ -52,7 +52,7 @@ from main.useful_modules import SmartPlanManager,FileBufferManager,TotalVarManag
 resources=read_resources_from_disk()
 file_buffer_manager=FileBufferManager()
 smart_plan_manager=SmartPlanManager()
-text_printer=PrintText(resources["fonts"]["文鼎PL中楷体.ttf"])
+text_printer=PrintText(resources["fonts"]["HarmonyOS_Sans/HarmonyOS_Sans_SC_Medium.ttf"])
 total_var_manager=TotalVarManager({
     "draw":True,
     "file_buffer_manager":file_buffer_manager
@@ -67,7 +67,7 @@ block_manager.init(total_var_manager)
 #-------------------------------------------------------------------------------------------------------------------------
 
 #允许用户自定义的变量,已将大部分变量做好注释
-mouse_move_speed=1 #鼠标移动距离
+mouse_move_speed=0.5 #鼠标移动距离
 player_move_speed=0.1
 look_length=15  #渲染距离,只支持不小于1的奇数
 highest_y=100  #世界最高Y坐标
@@ -110,37 +110,37 @@ def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，�
         #  |/      |/
         #  v3------v2
         if direction=="up":
-            glBindTexture(GL_TEXTURE_2D,resources["blocks_texture"][by_wzq][0][resources["blocks_texture"][by_wzq][1][0]])
+            glBindTexture(GL_TEXTURE_2D,resources["blocks_texture"][by_wzq-1][0][resources["blocks_texture"][by_wzq-1][1][0]])
             vertex_points=[x-0.5,y+0.5,z+0.5,  #V4
                            x+0.5,y+0.5,z+0.5,  #V5
                            x+0.5,y+0.5,z-0.5,  #V1
                            x-0.5,y+0.5,z-0.5]  #V0
         elif direction=="down":
-            glBindTexture(GL_TEXTURE_2D,resources["blocks_texture"][by_wzq][0][resources["blocks_texture"][by_wzq][1][1]])
+            glBindTexture(GL_TEXTURE_2D,resources["blocks_texture"][by_wzq-1][0][resources["blocks_texture"][by_wzq-1][1][1]])
             vertex_points=[x-0.5,y-0.5,z-0.5,  #V3
                            x+0.5,y-0.5,z-0.5,  #V2
                            x+0.5,y-0.5,z+0.5,  #V6
                            x-0.5,y-0.5,z+0.5]  #V7
         elif direction=="left":
-            glBindTexture(GL_TEXTURE_2D,resources["blocks_texture"][by_wzq][0][resources["blocks_texture"][by_wzq][1][2]])
+            glBindTexture(GL_TEXTURE_2D,resources["blocks_texture"][by_wzq-1][0][resources["blocks_texture"][by_wzq-1][1][2]])
             vertex_points=[x-0.5,y+0.5,z+0.5,  #V4
                            x-0.5,y+0.5,z-0.5,  #V0
                            x-0.5,y-0.5,z-0.5,  #V3
                            x-0.5,y-0.5,z+0.5]  #V7
         elif direction=="right":
-            glBindTexture(GL_TEXTURE_2D,resources["blocks_texture"][by_wzq][0][resources["blocks_texture"][by_wzq][1][3]])
+            glBindTexture(GL_TEXTURE_2D,resources["blocks_texture"][by_wzq-1][0][resources["blocks_texture"][by_wzq-1][1][3]])
             vertex_points=[x+0.5,y+0.5,z-0.5,  #V1
                            x+0.5,y+0.5,z+0.5,  #V5
                            x+0.5,y-0.5,z+0.5,  #V6
                            x+0.5,y-0.5,z-0.5]  #V2
         elif direction=="front":
-            glBindTexture(GL_TEXTURE_2D,resources["blocks_texture"][by_wzq][0][resources["blocks_texture"][by_wzq][1][4]])
+            glBindTexture(GL_TEXTURE_2D,resources["blocks_texture"][by_wzq-1][0][resources["blocks_texture"][by_wzq-1][1][4]])
             vertex_points=[x-0.5,y+0.5,z-0.5,  #V0
                            x+0.5,y+0.5,z-0.5,  #V1
                            x+0.5,y-0.5,z-0.5,  #V2
                            x-0.5,y-0.5,z-0.5]  #V3
         elif direction=="behind":
-            glBindTexture(GL_TEXTURE_2D,resources["blocks_texture"][by_wzq][0][resources["blocks_texture"][by_wzq][1][5]])
+            glBindTexture(GL_TEXTURE_2D,resources["blocks_texture"][by_wzq-1][0][resources["blocks_texture"][by_wzq-1][1][5]])
             vertex_points=[x+0.5,y+0.5,z+0.5,  #V5
                            x-0.5,y+0.5,z+0.5,  #V4
                            x-0.5,y-0.5,z+0.5,  #V7
@@ -189,22 +189,11 @@ def print_blocks(sx:int,sy:int,sz:int):#这里将来会选择性显示方块，�
 def debug_3d():
     if debug:
         #显示一个世界原点的坐标系
-        glLineWidth(1)
-        glBegin(GL_LINES)
-        glColor3ub(0,0,255)
-        glVertex3f(0,0,0)
-        glVertex3f(1,0,0)
-        glColor3ub(0,255,0)
-        glVertex3f(0,0,0)
-        glVertex3f(0,1,0)
-        glColor3ub(255,0,0)
-        glVertex3f(0,0,0)
-        glVertex3f(0,0,1)
-        glEnd()
+        glCallList(resources["coordinate_axis"])
         #显示坐标系文字（方便与MC原版进行校对）
-        text_printer.print_text_list(["x"], 1, 0, 0, size=1)
-        text_printer.print_text_list(["y"], 0, 1, 0, size=1)
-        text_printer.print_text_list(["z"], 0, 0, 1, size=1)
+        text_printer.print_text_list(["x"],1,0,0,small_height=1)
+        text_printer.print_text_list(["y"],0,7,0,small_height=1)#为什么是0,7,0?因为y底下有突出来的小弯钩
+        text_printer.print_text_list(["z"],0,0,1,small_height=1)
 def debug_2d():
     global debug_text
     if debug:
@@ -347,7 +336,7 @@ def mouse_hit_test(block_temp,see_x,see_y,px,py,pz):
         if block_manager.read_block(round(x),round(y),round(z),block_temp)!=0:
             return (round(x),round(y),round(z)),free_block
     return None
-def world_mouseclick(window,button,action,mods):
+def world_mouseclick(_,button,action,mods):
     if button==glfw.MOUSE_BUTTON_LEFT or button==glfw.MOUSE_BUTTON_RIGHT:mouse[button==glfw.MOUSE_BUTTON_RIGHT]=int(action==glfw.PRESS)#简单来说这一行代码的作用就是给mouse的1或0如果按下就标记为1没按下就标记为0
     if mouse[1]:
         temp=mouse_hit_test(block_manager.block_temp,player_see_x,player_see_y,player_x,player_y,player_z)
@@ -356,6 +345,8 @@ def world_mouseclick(window,button,action,mods):
         temp=mouse_hit_test(block_manager.block_temp,player_see_x,player_see_y,player_x,player_y,player_z)
         if temp is not None:block_manager.write_block(temp[0][0],temp[0][1],temp[0][2],0)
 def glfw_keyboard_callback(_,key,scancode,action,mods):
+    #最离谱的是glfw对IME的支持还在进行中......所以无法完美使用输入法
+    #https://github.com/glfw/glfw/issues/41
     global input_text,input_buffer,debug
     if debug:print("glfw-char",key,scancode,action,mods)
     if input_text:
@@ -368,7 +359,7 @@ def glfw_keyboard_callback(_,key,scancode,action,mods):
             input_text=False
             input_buffer=""
             lock_or_unlock_mouse(False)
-        elif key==259:input_buffer=input_buffer[:-1]#Backspace
+        elif key==259 and action==glfw.PRESS:input_buffer=input_buffer[:-1]#Backspace
     else:
         if not keyboard[256] and key==256:lock_or_unlock_mouse(lock_mouse)#锁定或非锁定状态
         elif not keyboard[96] and key==96:#调试模式
@@ -376,9 +367,9 @@ def glfw_keyboard_callback(_,key,scancode,action,mods):
             else:debug=True
         if key in keyboard and action==glfw.PRESS:keyboard[key]=True
         if key in keyboard and action==glfw.RELEASE:keyboard[key]=False
-def glfw_keyboard_fix_callback(_,codepoint):
+def glfw_keyboard_fix_callback(_,codepoint,mods):
     global input_text,input_buffer
-    if debug:print("glfw-key",codepoint)
+    if debug:print("glfw-key",codepoint,mods)
     if input_text:input_buffer+=chr(codepoint)
     else:
         if codepoint==ord("/"):
@@ -421,10 +412,10 @@ def go_to_world():
     glfw.set_cursor_pos_callback(window,world_mousemove)
     glfw.set_mouse_button_callback(window,world_mouseclick)
     glfw.set_key_callback(window,glfw_keyboard_callback)
-    glfw.set_char_callback(window,glfw_keyboard_fix_callback)
+    glfw.set_char_mods_callback(window,glfw_keyboard_fix_callback)
     global resources,blocks_display_list#只能在opengl初始化后初始化的资源
     temp=read_opengl_resources_from_disk()
-    resources["blocks_texture"],resources["cross_pointer"]=temp
+    resources["blocks_texture"],resources["cross_pointer"],resources["coordinate_axis"]=temp
     blocks_display_list=glGenLists(1)
     return world_main_loop
 def glfw_error_callback(error_code,error_info):#欢迎大家在这个函数如一下一样添加解决方案

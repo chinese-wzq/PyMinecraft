@@ -69,7 +69,6 @@ class Character:
         self.characters_buffer={}
     def get_character(self,character,size,color):
         if self.buffer and character+str(size) in self.characters_buffer:return self.characters_buffer[character+str(size)]
-        #self.face.set_char_size(size*64)
         self.face.set_pixel_sizes(size,0)
         self.face.load_char(character)
         #进行颜色的填充
@@ -140,7 +139,7 @@ class PrintText:
             glVertex3f(x+dy*parameter[3],y,z+dx*parameter[4])
             glTexCoord2f(texcoord[6],texcoord[7])
         else:raise ValueError("PrintText：未知的parameter参数内容！")
-    def _print_text_center(self,text:str,left_x,left_y,left_z,right_x,right_y,right_z,color=(0,0,0),size=24,spacing=0,direction="up",parameter:tuple=(1,1,0,1,1),enter_width=0,m=1):#left均指左下，right均指右上
+    def _print_text_center(self,text:str,left_x,left_y,left_z,right_x,right_y,right_z,color=(0,0,0),size=24,spacing=0,direction="up",parameter:tuple=(1,1,0,1,1),enter_width=None,m=1):#left均指左下，right均指右上
         #这是居中显示文字的基础实现，需要更高级的API方便显示，要不然每一次都要计算
         #------------------目前还不公开使用，可能会有未知的结果------------------------
         pen_dx,pen_baseline_y=self.print_text_list(text=list(text), x=left_x, y=left_y, z=left_z, color=color, size=size, spacing=spacing, parameter=parameter,display=False)#获取pen_dx
@@ -149,7 +148,7 @@ class PrintText:
     def print_text_list(self, text:list, x=0, y=0, z=0, color=(0,0,0), size=24,small_height=None,spacing=0,direction="up",parameter:tuple=(1,1,0,1,1),enter_width=0,m=1,display=True):
         #采用freetype+texture方案，更高可塑性，字体更好看！
         #这里是重写版，因为原来那个已经不能适应新的需求了（其实就是时间长了自己忘了思路了，改不动）
-
+        #---------------------------------------------------------------------------------
         #进行一些对OpenGL的准备
         if display:
             glEnable(GL_TEXTURE_2D)
@@ -165,7 +164,7 @@ class PrintText:
         for text_for in range(len(text)):
             for character in text[text_for]:
                 if self.buffer and character+str(size)+str(color) in self.texture_buffer:#尝试命中缓存
-                    if display:glBindTexture(GL_TEXTURE_2D, self.texture_buffer[character + str(size) + str(color)])
+                    if display:glBindTexture(GL_TEXTURE_2D,self.texture_buffer[character+str(size)+str(color)])
                     character_cbox=self.texture_buffer[character+str(size)+str(color)+"info"][0]
                     character_advance_x=self.texture_buffer[character+str(size)+str(color)+"info"][1]
                     character_size=character_cbox.xMax-character_cbox.xMin,character_cbox.yMax-character_cbox.yMin
@@ -190,12 +189,13 @@ class PrintText:
                         self.texture_buffer[character+str(size)+str(color)+"info"]=character_cbox,character_advance_x
                 if display:
                     glBegin(GL_QUADS)
-                    PrintText.default_2d(character_size,x,y,z,pen_dx,pen_baseline_y+character_cbox.yMin,direction,parameter)#为什么用函数引出来？因为工程量实在太大，够单独开一个函数讲解了
+                    if small_height is not None:character_size=small_height/character_size[1]*character_size[0],small_height#使small_height生效
+                    PrintText.default_2d(character_size,x,y,z,pen_dx,pen_baseline_y+character_cbox.yMin,direction,parameter)#为什么用函数引出来？因为实在太长，够单独开一个函数了
                     glEnd()
                     glBindTexture(GL_TEXTURE_2D,0)
                 pen_dx+=character_advance_x+spacing
-                if character_cbox.yMin<yMin:yMin=character_cbox.yMin
-            if enter_width==0 and text_for!=len(text)-1:pen_baseline_y-=(self.get_text_yMax(text[text_for+1],size,color)-yMin)*m
+                if character_cbox.yMin<yMin:yMin=character_cbox.yMin#得到文本中最小的yMin
+            if enter_width==0 and text_for!=len(text)-1:pen_baseline_y-=(self.get_text_yMax(text[text_for+1],size,color)-yMin)*m#得到下一行文本中最大的yMax,并计算出接下来的基线
             else:pen_baseline_y-=enter_width*m
             if not display:
                 return pen_dx,pen_baseline_y
@@ -239,31 +239,18 @@ def read_resources_from_disk():
     #将需要的资源读入内存并使用BytesIO模拟文件流
     #而且，还会顺带把方块材质提前准备成纹理VBO
     wating_icon=["main/resources/icon","PyMinecraft_48x48.ico","PyMinecraft_32x32.ico","PyMinecraft_16x16.ico"]
-    wating_fonts=["main/resources/fonts","文鼎PL中楷体.ttf"]
-
+    wating_fonts=["main/resources/fonts","HarmonyOS_Sans/HarmonyOS_Sans_SC_Medium.ttf"]
     resources={"icon":[],"blocks_texture":[],"fonts":{},"cross_pointer":None}
     for i in range(1,len(wating_icon)):#读取图标
         with open(os.path.join(wating_icon[0],wating_icon[i]),"rb") as f:resources["icon"].append(Image.open(BytesIO(f.read())))
-
-    for i in range(1,len(wating_fonts)):
-        with open(os.path.join(wating_fonts[0],wating_fonts[i]),"rb") as f:resources["fonts"][wating_fonts[i]]=BytesIO(f.read())
+    for i in range(1,len(wating_fonts)):#读取字体
+        with open(os.path.join(wating_fonts[0],wating_fonts[i]),"rb") as f:resources["fonts"][wating_fonts[i]]=BytesIO(f.read())#其实我一开始不知道原来freetype-py是支持文件流的
     return resources
 def read_opengl_resources_from_disk():#需要在opengl全部初始化完后才能生成
     wating_blocks_texture=["main/resources/blocks_texture",#索引依次对应方块的上下左右前后
-        [["1_grass_around.png","1_grass_down.png","1_grass_up.png"],[2,1,0,0,0,0]]
+        [["1_grass_around.png","1_grass_down.png","1_grass_up.png"],[2,1,0,0,0,0]]#1号方块，以此类推
     ]
     resources=[]
-
-    texture_EBO=glGenBuffers(1)#提前把基本完全相同的texture_coord准备成VBO
-    glBindBuffer(GL_ARRAY_BUFFER,texture_EBO)
-    a=numpy.array([1.0,1.0,
-                   0.0,1.0,
-                   0.0,0.0,
-                   1.0,0.0],dtype='float32')
-    glBufferData(GL_ARRAY_BUFFER,sys.getsizeof(a),a,GL_STATIC_DRAW)
-    glBindBuffer(GL_ARRAY_BUFFER,0)
-    resources.append(texture_EBO)
-
     for i in range(1,len(wating_blocks_texture)):#读取方块材质
         resources.append([])
         texture_VBO=glGenTextures(len(wating_blocks_texture[i][0]))
@@ -284,9 +271,9 @@ def read_opengl_resources_from_disk():#需要在opengl全部初始化完后才�
                 glTexImage2D(GL_TEXTURE_2D,0,GL_RGB,64,64,0,GL_RGBA,GL_UNSIGNED_BYTE,bytes(all_pixels))
                 glGenerateMipmap(GL_TEXTURE_2D)
                 glBindTexture(GL_TEXTURE_2D,0)
-        resources[i]=[texture_VBO,wating_blocks_texture[i][1]]
-
-    cross_pointer=glGenLists(1)#生成鼠标指针显示列表
+        resources[i-1]=[texture_VBO,wating_blocks_texture[i][1]]
+    #生成鼠标指针显示列表
+    cross_pointer=glGenLists(1)
     glNewList(cross_pointer,GL_COMPILE)
     glLineWidth(2)
     glBegin(GL_LINES)
@@ -297,5 +284,20 @@ def read_opengl_resources_from_disk():#需要在opengl全部初始化完后才�
     glVertex2f(375, 400)
     glEnd()
     glEndList()
-
-    return [resources,cross_pointer]
+    #生成坐标轴显示列表
+    coordinate_axis=glGenLists(1)
+    glNewList(coordinate_axis,GL_COMPILE)
+    glLineWidth(1)
+    glBegin(GL_LINES)
+    glColor3ub(0, 0, 255)
+    glVertex3f(0, 0, 0)
+    glVertex3f(1, 0, 0)
+    glColor3ub(0, 255, 0)
+    glVertex3f(0, 0, 0)
+    glVertex3f(0, 1, 0)
+    glColor3ub(255, 0, 0)
+    glVertex3f(0, 0, 0)
+    glVertex3f(0, 0, 1)
+    glEnd()
+    glEndList()
+    return [resources,cross_pointer,coordinate_axis]
